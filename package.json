@@ -1,0 +1,28 @@
+{
+    "name": "randomencounterbot",
+    "version": "0.1.5",
+    "description": "Custom Twitch chat bot for use in DJ Livestreamer's channel, the_random_encounter",
+    "homepage": "https://www.twitch.tv/the_random_encounter/",
+    "main": "chatbot.js",
+    "scripts": {
+        "start": "node chatbot.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "Random Encounter",
+    "license": "MIT",
+    "dependencies": {
+        "comfy.js": "^1.1.12",
+        "dotenv": "^10.0.0",
+        "express": "^4.17.3",
+        "mysql2": "^2.3.3",
+        "nodemailer": "^6.7.3",
+        "tmi.js": "^1.8.5",
+        "ws": "^8.5.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/the-random-encounter/randomencounterbot.git"
+    },
+    "private": true
+}
