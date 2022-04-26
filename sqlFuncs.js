@@ -2,8 +2,9 @@
 // SQL FUNCTIONS FILE
 // Database: userinfodb
 // Tables: userinfo, commands
-// v0.1.5 - 04/24/2022
+// v0.1.5 - 04/26/2022
 // by The Random Encounter
+// https://github.com/the-random-encounter/randomencounterbot.git
 // https://www.twitch.tv/the_random_encounter
 // https://www.facebook.com/random.encounter.dj
 // E-Mail: talent@random-encounter.net

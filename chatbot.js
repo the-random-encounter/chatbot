@@ -1,7 +1,8 @@
 // RANDOM ENCOUNTER TWITCH CHAT BOT
 // MAIN FUNCTIONS FILE
-// v0.1.5 - 04/24/2022
+// v0.1.5 - 04/26/2022
 // by The Random Encounter
+// https://github.com/the-random-encounter/randomencounterbot.git
 // https://www.twitch.tv/the_random_encounter
 // https://www.facebook.com/random.encounter.dj
 // E-Mail: talent@random-encounter.net
@@ -66,9 +67,6 @@ ComfyJS.Init(process.env.TWITCH_USERNAME, process.env.TWITCH_OAUTH, process.env.
 
 // Init local MySQL Server Connection
 userDB.connect();
-
-// Init Event Timers
-setInterval(generateTip, 300000); // Random tips every five minutes
 
 // Announcement Function Declarations
 const subathonAnnounce = () => { ComfyJS.Say(`Hey ravers and lovers and good-time-facilitators! Random Encounter is running a subathon today, hoping to get some funds to replace a bunch of stolen studio equipment. MIDI controllers, speakers, and more... all gone... It'd be awesome if you can help out. We'd both appreciate your generousity greatly!`); }
@@ -138,13 +136,16 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
             case 'beginstream':
                 if (flags.broadcaster) {
 
-                    // subtahonInit = setTimeout(subathonAnnounce, 180000); // Initial Subathon announcement, 3m delay
                     raidTrainInit = setTimeout(raidTrainAnnounce, 480000) // Initial Raid Train Streams announcement, 8m delay
-                    tipInit = setTimeout(tipAnnounce, 300000); // Initial tip link announcement, 5m delay
-
-                    // subathonInterval = setInterval(subathonAnnounce, 1200000); // Announce Subathon, 20m intervals
                     raidTrainInterval = setInterval(raidTrainAnnounce, 2400000); // Announce Raid Train Streams in 30m intervals
-                    tipInterval = setInterval(tipAnnounce, 900000); // Announce tip link in 15m intervals
+
+                    moneyTipInit = setTimeout(tipAnnounce, 300000); // Initial tip link announcement, 5m delay
+                    moneyTipInterval = setInterval(tipAnnounce, 900000); // Announce tip link in 15m intervals
+
+                    helpTipInterval = setInterval(generateTip, 300000); // Random tips every five minutes
+
+                    // subathonInit = setTimeout(subathonAnnounce, 180000); // Initial Subathon announcement, 3m delay
+                    // subathonInterval = setInterval(subathonAnnounce, 1200000); // Announce Subathon, 20m intervals
 
                     streamActive = true;
                     updatedUsersList = [];
@@ -157,13 +158,16 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
             case 'begin2ndstream':
                 if (flags.broadcaster) {
 
-                    subathonInit = setTimeout(subathonAnnounce, 180000); // Initial Subathon announcement, 3m delay
                     raidTrainInit = setTimeout(raidTrainAnnounce, 480000) // Initial Raid Train Streams announcement, 8m delay
-                    tipInit = setTimeout(tipAnnounce, 300000); // Initial tip link announcement, 5m delay
-
-                    subathonInterval = setInterval(subathonAnnounce, 1200000); // Announce Subathon, 20m intervals
                     raidTrainInterval = setInterval(raidTrainAnnounce, 2400000); // Announce Raid Train Streams in 30m intervals
-                    tipInterval = setInterval(tipAnnounce, 900000); // Announce tip link in 15m intervals
+
+                    moneyTipInit = setTimeout(tipAnnounce, 300000); // Initial tip link announcement, 5m delay
+                    moneyTipInterval = setInterval(tipAnnounce, 900000); // Announce tip link in 15m intervals
+
+                    helpTipInterval = setInterval(generateTip, 300000); // Random tips every five minutes
+
+                    // subathonInit = setTimeout(subathonAnnounce, 180000); // Initial Subathon announcement, 3m delay
+                    // subathonInterval = setInterval(subathonAnnounce, 1200000); // Announce Subathon, 20m intervals
 
                     streamActive = true;
                     secondDailyStream = true;
@@ -176,13 +180,17 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
             case 'endstream':
                 if (flags.broadcaster) {
 
-                    clearTimeout(subathonInit);
-                    clearTimeout(raidTrainInit);
-                    clearTimeout(tipAnnounce);
 
-                    clearInterval(subathonInterval);
+                    clearTimeout(raidTrainInit);
                     clearInterval(raidTrainInterval);
-                    clearInterval(tipAnnounce);
+
+                    clearTimeout(moneyTipInit);
+                    clearInterval(moneyTipInterval);
+
+                    clearInterval(helpTipInterval);
+
+                    // clearTimeout(subathonInit);
+                    // clearInterval(subathonInterval);
 
                     streamActive = false;
                     secondDailyStream = false;
