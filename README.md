@@ -1,9 +1,10 @@
 ![randomencounterbot by the_random_encounter - Twitch Chat Bot](./img/chatbot_logo_full_blu-med2.png)
 
-# 'randomencounterbot' v0.1.5 - a node.js chat bot for Twitch #
+# 'randomencounterbot' v0.1.5 #
+### - a node.js chat bot for Twitch - ###
 
-## Written by and for the_random_encounter ##
-### https://www.twitch.tv/the_random_encounter/ ###
+### Written by and for the_random_encounter ###
+#### https://www.twitch.tv/the_random_encounter/ ####
 
 ### Overview: ###
 
