@@ -93,6 +93,12 @@ const appendLog = (time, type, sender, message) => {
         case 'CONSOLE':
             logSender.className = 'logTableSenderConsole'
             break;
+        case 'The_Random_Encounter':
+            logSender.className = 'logTableSenderHost'
+            break;
+        case 'randomencounterbot':
+            logSender.className = 'logTableSenderBot'
+            break;
         default:
             logSender.className = 'logTableSender'
             break;
