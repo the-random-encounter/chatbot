@@ -21,6 +21,7 @@ const userDB = require('./sqlFuncs.js');
 const express = require('express');
 const WebSocket = require('ws');
 const http = require('http');
+const EventEmitter = require('tmi.js/lib/events');
 
 // Declare CONST global objects
 const app = express();
@@ -41,17 +42,34 @@ var scriptStart = new Date().getTime();
 // User tracking list arrays
 let currentUsersList = [];
 let updatedUsersList = [];
+let cmdMemArray = [];
 
 // Stream-tracking flags
 let streamActive = false;
 let secondDailyStream = false;
 
 // Generic message global var
+let WebsocketSends = 0;
 let msg;
+
+// Command specific flags and arrays
+
+/*class recipMem {
+    command;
+    giver;
+    recipient;
+
+    constructor(command, giver, recipient, arrayLoc) {
+        this.command = command;
+        this.giver = giver;
+        this.recipient = recipient;
+        this.arrayLoc = 
+    }
+}*/
 
 // Init WebSocket Events
 wss.on('connection', wsc => {
-    wsc.on('message', message => {
+    wsc.once('message', message => {
         console.log(`Received message => ${message}`);
     });
     wsc.send('something');
@@ -70,7 +88,7 @@ userDB.connect();
 
 // Announcement Function Declarations
 const subathonAnnounce = () => { ComfyJS.Say(`Hey ravers and lovers and good-time-facilitators! Random Encounter is running a subathon today, hoping to get some funds to replace a bunch of stolen studio equipment. MIDI controllers, speakers, and more... all gone... It'd be awesome if you can help out. We'd both appreciate your generousity greatly!`); }
-const raidTrainAnnounce = () => { ComfyJS.Say(`Weekly streams, Tuesdays and Wednesdays! Catch Random Encounter closing out Thrust Tuesdays at 1am CST/6am GMT (yes, it's technically a Wednesday), and again Wednesday evening at 7pm CST/12am GMT! We'd love to see ya there!`); }
+const raidTrainAnnounce = () => { ComfyJS.Say(``); }
 const tipAnnounce = () => { ComfyJS.Say(`Consider supporting the stream! Subscriptions, bits, or even direct tips are immensely helpful, and go towards new music, new gear, or other stream/studio-related items. Tip directly at https://streamelements.com/the_random_encounter/tip`); }
 const marathonAnnounce = () => { ComfyJS.Say(``); }
 
@@ -96,6 +114,7 @@ ComfyJS.onChat = (user, message, flags, self, extra) => {
         //} else if (userDB.doesExist(user) == true) {
         //    userDB.lastSeen(user);
         //}
+
     }
 
     userDB.incChats(user);
@@ -103,463 +122,631 @@ ComfyJS.onChat = (user, message, flags, self, extra) => {
 
 ComfyJS.onCommand = (user, command, message, flags, extra) => {
 
+
     let cmd = command;
     let target = '';
-    const logType = 'CMD';
+    let logType = 'CMD';
+    let adminLvl;
+
+    if (cmd[1] == '!') { cmd.substring(1); }
+
+    switch (cmd.toLowerCase()) {
+
+        case 'command':
+        case 'commands':
+            //ComfyJS.Say('For a complete command list and their functions, please goto https://www.random-encounter.net/botcmds/');
+            ComfyJS.Say(`Completed commands: !hello, !commands, !cheers/!toast, !so/!shoutout, !lurk, !hype/!rage, !kr, !botiq, !madlove, !hug, !kiss, !spank, !doctor, !dice/!rolldice/!diceroll, !tuna/!tune, !whattune/!trackid/!tunename, !banger, !discord, !throwdown, !thrust, !tuesday, !wednesday`);
+            ComfyJS.Say(`Commands under development/not fully implemented: !adjective, !tokens/!checktokens, !bet`);
+
+            break;
+
+        case 'hello':
+            ComfyJS.Say(`@${user}, it is good to see you! Hello!`);
+
+            break;
+
+        case 'byebyebot':
+            if (flags.broadcaster) {
+                ComfyJS.Say(`Alright, I'm out! Bye Felicia!`);
+                userDB.disconnect();
+                ComfyJS.Disconnect();
+            } else {
+                ComfyJS.Say(`You don't have permission to perform this command!`);
+            }
+
+            break;
+
+        case 'debuglisteners':
+            console.log(`Event Listeners for WSS 'Connection': ${wss.listenerCount('connection')}`);
+            console.log(`Event listeners for WSS 'Send'      : ${wss.listenerCount('send')}`);
+            console.log(`Event listeners for WSS 'Message'   : ${wss.listenerCount('message')}`);
+            //console.log(`Event listeners for WSC 'Send'      : ${wsc.listenerCount('send')}`);
+            //console.log(`Event listeners for WSC 'Message'   : ${wss.wsc.listenerCount('message')}`);git help
+
+
+            break;
+
+        case 'bss':
+        case 'beginstreamsilent':
+            if (flags.broadcaster) {
+
+                raidTrainInit = setTimeout(raidTrainAnnounce, 480000) // Initial Raid Train Streams announcement, 8m delay
+                raidTrainInterval = setInterval(raidTrainAnnounce, 2400000); // Announce Raid Train Streams in 30m intervals
+
+                moneyTipInit = setTimeout(tipAnnounce, 300000); // Initial tip link announcement, 5m delay
+                moneyTipInterval = setInterval(tipAnnounce, 900000); // Announce tip link in 15m intervals
+
+                helpTipInterval = setInterval(generateTip, 300000); // Random tips every five minutes
+
+                // subathonInit = setTimeout(subathonAnnounce, 180000); // Initial Subathon announcement, 3m delay
+                // subathonInterval = setInterval(subathonAnnounce, 1200000); // Announce Subathon, 20m intervals
+
+                streamActive = true;
+                updatedUsersList = [];
+
+                console.log(` CMD LOG: Broadcaster began stream timer. Time-delayed events and triggers active.`);
+
+            } else {
+                ComfyJS.Say(`You don't have permission to perform this command!`);
+            }
+
+
+            break;
+
+        case 'beginstream':
+            if (flags.broadcaster) {
+
+                raidTrainInit = setTimeout(raidTrainAnnounce, 480000) // Initial Raid Train Streams announcement, 8m delay
+                raidTrainInterval = setInterval(raidTrainAnnounce, 2400000); // Announce Raid Train Streams in 30m intervals
+
+                moneyTipInit = setTimeout(tipAnnounce, 300000); // Initial tip link announcement, 5m delay
+                moneyTipInterval = setInterval(tipAnnounce, 900000); // Announce tip link in 15m intervals
+
+                helpTipInterval = setInterval(generateTip, 300000); // Random tips every five minutes
+
+                // subathonInit = setTimeout(subathonAnnounce, 180000); // Initial Subathon announcement, 3m delay
+                // subathonInterval = setInterval(subathonAnnounce, 1200000); // Announce Subathon, 20m intervals
+
+                streamActive = true;
+                updatedUsersList = [];
+
+                console.log(` CMD LOG: Broadcaster began stream timer. Time-delayed events and triggers active.`);
+                ComfyJS.Say(`Done. Stream timer has begun.`);
+            } else {
+                ComfyJS.Say(`You don't have permission to perform this command!`);
+            }
+
+
+            break;
+
+        case 'begin2ndstream':
+            if (flags.broadcaster) {
+
+                raidTrainInit = setTimeout(raidTrainAnnounce, 480000) // Initial Raid Train Streams announcement, 8m delay
+                raidTrainInterval = setInterval(raidTrainAnnounce, 2400000); // Announce Raid Train Streams in 30m intervals
+
+                moneyTipInit = setTimeout(tipAnnounce, 300000); // Initial tip link announcement, 5m delay
+                moneyTipInterval = setInterval(tipAnnounce, 900000); // Announce tip link in 15m intervals
+
+                helpTipInterval = setInterval(generateTip, 300000); // Random tips every five minutes
+
+                // subathonInit = setTimeout(subathonAnnounce, 180000); // Initial Subathon announcement, 3m delay
+                // subathonInterval = setInterval(subathonAnnounce, 1200000); // Announce Subathon, 20m intervals
+
+                streamActive = true;
+                secondDailyStream = true;
+                updatedUsersList = [];
+
+                console.log(` CMD LOG: Broadcaster began stream timer. Second stream flagged, time-delayed events and triggers active.`);
+                ComfyJS.Say(`Done. Stream timer has begun. Second daily stream registered.`);
+            } else {
+                ComfyJS.Say(`You don't have permission to perform this command!`);
+            }
+
+
+            break;
+
+        case 'es':
+        case 'endstream':
+            if (flags.broadcaster) {
+
+
+                clearTimeout(raidTrainInit);
+                clearInterval(raidTrainInterval);
+
+                clearTimeout(moneyTipInit);
+                clearInterval(moneyTipInterval);
+
+                clearInterval(helpTipInterval);
+
+                // clearTimeout(subathonInit);
+                // clearInterval(subathonInterval);
+
+                streamActive = false;
+                secondDailyStream = false;
+
+                console.log(` CMD LOG: Broadcaster ended stream timer. Time-delayed events and triggers disabled.`);
+                ComfyJS.Say(`Done. Stream timer ended.`);
+            } else {
+                ComfyJS.Say(`You don't have permission to perform this command!`);
+            }
+
+
+            break;
+
+        case 'ess':
+        case 'endstreamsilent':
+            if (flags.broadcaster) {
+
+
+                clearTimeout(raidTrainInit);
+                clearInterval(raidTrainInterval);
+
+                clearTimeout(moneyTipInit);
+                clearInterval(moneyTipInterval);
+
+                clearInterval(helpTipInterval);
+
+                // clearTimeout(subathonInit);
+                // clearInterval(subathonInterval);
+
+                streamActive = false;
+                secondDailyStream = false;
+
+                console.log(` CMD LOG: Broadcaster ended stream timer. Time-delayed events and triggers disabled.`);
+            } else {
+                ComfyJS.Say(`You don't have permission to perform this command!`);
+            }
+
+
+            break;
+
+        case 'cheers':
+        case 'toast':
+            target = '';
+            if (message == '') {
+                ComfyJS.Say(`@${user} wants to celebrate the good times with a toast! Cheers, ${user}`);
+
+                break;
+            } else {
+                if (message[0] === '@') { target = message.substring(1); } else { target = message; };
+                ComfyJS.Say(`@${user} wants to celebrate the good times with you, @${target}! Cheers!`);
+
+                break;
+            }
+
+        case 'so':
+        case 'shoutout':
+            target = '';
+            if (message[0] === '@') {
+                target = message.substring(1);
+            } else {
+                target = message;
+            }
+            ComfyJS.Say(`@${user} wants to give a mad shoutout to the amazing @${target}! It takes less than ten seconds to click the link and follow their profile, and they deserve the recognition! https://www.twitch.tv/${target}/`);
+
+
+            break;
+
+        case 'lurk':
+            ComfyJS.Say(`@${user} has decided they have something better to do, receding into the shadows. Catch you later, wallflower!`);
+
+
+            break;
+
+        case 'hype':
+        case 'rage':
+            ComfyJS.Say(`djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty`);
+
+
+            break;
+
+        case 'kr':
+        case 'knightsradiant':
+        case 'stormlight':
+            ComfyJS.Say(`The hallowed oaths must again be spoken. Life before death. Strength before weakness. Journey before destination. The Knights Radiant must stand again! @${user} must be a huge Cosmere nerd!`);
+
+
+            break;
+
+        case 'botiq':
+            ComfyJS.Say(`I know you don't think I'm very smart, @${user}. It's okay, I know I ride the short bus everyday. I've come to terms with it.`);
+
+
+            break;
+
+        case 'madlove':
+            ComfyJS.Say(`AsexualPride boredrAversMadLove BisexualPride boredrAversMadLove GayPride boredrAversMadLove GenderFluidPride boredrAversMadLove IntersexPride boredrAversMadLove LesbianPride boredrAversMadLove NonbinaryPride boredrAversMadLove PansexualPride boredrAversMadLove TransgenderPride boredrAversMadLove`);
+
+
+            break;
+
+        case 'userdebug':
+            if (flags.broadcaster) {
+                ComfyJS.Say(`Performing user debug action. Check console logs for further information.`);
+                console.log(currentUsersList);
+            } else if (!flags.broadcaster) {
+                ComfyJS.Say(`Access denied. You are not the broadcaster of this channel. Sorry, mate.`);
+                console.log(` CMD LOG: User '${user}' attempted to access user debug list. Access denied.`);
+            }
+
+
+            break;
+
+        case 'updatelistdebug':
+            if (flags.broadcaster) {
+                ComfyJS.Say(`Performing updated user list debug action. Check console logs for further information.`);
+                console.log(updatedUsersList);
+            } else if (!flags.broadcaster) {
+                ComfyJS.Say(`Access denied. You are not the broadcaster of this channel. Sorry, mate.`);
+                console.log(` CMD LOG: User '${user}' attempted to access user debug list. Access denied.`);
+            }
+
+
+            break;
+
+        case 'doctor':
+            ComfyJS.Say(`Ah, @${user}, sounds like you need a doctor? Well, @doctorknight is the best I can offer. If it helps, he's my master's dad, so I can probably get you a good deal on some back alley surgery...`);
+
+            break;
+
+        case 'discord':
+            ComfyJS.Say(`Join the Random discord and be a part of our growing community! https://discord.gg/2HyaWdpGGT`)
+
+            break;
+
+        case 'thrust':
+            target = '';
+            if (message[0] === '@') {
+                target = message.substring(1);
+            } else {
+                target = message;
+            }
+
+            ComfyJS.Say(`@${target} is a member of the raid train crew Thrust Tuesday, streaming every Tuesday from 9:00AM PST/12:00PM EST/4:00PM GMT until 12:00AM PST/3:00AM EST/7:00AM GMT, or even later. Catch them at https://www.twitch.tv/${target} and The Throwdown's Linktree https://linktr.ee/ThrustTuesdays`);
+
+
+            break;
+
+        case 'tuesday':
+            ComfyJS.Say(`Every Tuesday, @the_random_encounter is getting thrusty with the rest of the Thrust Tuesday crew. Catch him from 11:00PM PST/2:00AM EST/6:00AM GMT till he feels like closing it out. For the rest, check out the linktree link for all the information on line-ups and other cool stuff you could want! https://linktr.ee/ThrustTuesdays`);
+
+            break;
+
+        case 'ttd':
+        case 'wednesday':
+            ComfyJS.Say(`Every Wednesday, @the_random_encounter is waging war against hardcore! Catch him for an hour at 5:00PM-6:00PM PST/8:00PM-9:00PM EST/12:00-1:00AM GMT. For the rest, check out the linktree link for all the information on line-ups and other cool stuff you could want! https://linktr.ee/ThrowdownThursday`);
+
+            break;
+
+        case 'throwdown':
+            ComfyJS.Say(`The Throwdown's Linktree https://linktr.ee/ThrowdownThursday`);
+
+            break;
+
+        case 'adjective':
+            userDB.getAdj(user);
+            //ComfyJS.Say(`@${user}, your RANDOM ADJECTIVE is ${adjective}! And you're stuck with it for good!`);
+
+            break;
+
+        case 'checktokens':
+        case 'tokens':
+            let amt = userDB.displayTokens(user);
+            //ComfyJS.Say(`@${user}, you currently have ${amtTokens} casino tokens remaining.`);
+
+            break;
+
+        case 'dice':
+        case 'rolldice':
+        case 'diceroll':
+
+            let [diceAmt, diceSize] = message.split(" ");
+
+            if (diceAmt == '' || diceSize == '') {
+                ComfyJS.Say(`You must specify 1-10 dice and what kind of dice to roll (think D&D), ${user}. Try !dice 5 20 to roll 5 d20, for example.`);
+
+                break;
+            }
+
+            diceSize = diceSize.replace(/\D/g, '');
+
+            diceAmt = Number.parseInt(diceAmt, 10);
+            diceSize = Number.parseInt(diceSize, 10);
+
+            let rollResult = 0;
+            let perDieResult = [];
+            let diceAmtAsWord = ``;
+            let failMessage = ``;
+            let failMessage2 = ``;
+            let failState = false;
+            let failState2 = false;
+
+            if (diceAmt == 0) {
+                failMessage = `You cannot roll zero dice, @${user}.`;
+                failState = true;
+            } else if (diceAmt > 10) {
+                failMessage = `You cannot roll more than ten dice, @${user}.`;
+                failState = true;
+            }
+
+            if (diceSize == 3 || diceSize == 4 || diceSize == 6 || diceSize == 8 || diceSize == 10 || diceSize == 12 || diceSize == 20 || diceSize == 100) {
+            } else {
+                failMessage2 = `You must enter a standard number of sides for the dice. Accepted values are 3, 4, 6, 8, 10, 12, 20, or 100. Think D&D!.`;
+                failState2 = true;
+            }
+
+            if (failState && failState2) {
+                failMessage = failMessage + ` AND ALSO, `;
+            }
+
+            if (failState || failState2) {
+                ComfyJS.Say(`${failMessage}${failMessage2}`);
+
+                break;
+            } else {
+                diceResults = diceRoll(diceAmt, diceSize);
+                rollResult = diceResults[0];
+                perDieResult = diceResults[1];
+            }
+
+            let lastDieRoll = perDieResult[perDieResult.length - 1];
+            perDieResult.pop();
+            let perDieResultAsString = perDieResult.join(', ');
+
+            switch (Number.parseInt(diceAmt, 10)) {
+                case 1:
+                    diceAmtAsWord = `one`;
+                    break;
+                case 2:
+                    diceAmtAsWord = `two`;
+                    break;
+                case 3:
+                    diceAmtAsWord = `three`;
+                    break;
+                case 4:
+                    diceAmtAsWord = `four`;
+                    break;
+                case 5:
+                    diceAmtAsWord = `five`;
+                    break;
+                case 6:
+                    diceAmtAsWord = `six`;
+                    break;
+                case 7:
+                    diceAmtAsWord = `seven`;
+                    break;
+                case 8:
+                    diceAmtAsWord = `eight`;
+                    break;
+                case 9:
+                    diceAmtAsWord = `nine`;
+                    break;
+                case 10:
+                    diceAmtAsWord = `ten`;
+                    break;
+                default:
+                    diceAmtAsWord = `unknown`;
+                    break;
+            }
+
+            if (diceAmt == 1) {
+                ComfyJS.Say(`@${user} rolled a single ${diceSize}-sided die. The result was ${rollResult}!`);
+
+                break;
+            } else if (diceAmt > 1) {
+                ComfyJS.Say(`@${user} rolled ${diceAmtAsWord} ${diceSize}-sided dice. The results were ${perDieResultAsString}, and ${lastDieRoll} for a total of ${rollResult}!`);
+
+                break;
+            } else {
+                ComfyJS.Say(`Something weird happened in my brain. The dice roll failed. Sorry, boss. Try again?`);
+
+                break;
+            }
+
+        case 'banger':
+            ComfyJS.Say(`@${user} thinks the current tune is a right royal banger! RAGE!!!`);
+
+            break;
+
+        case 'tuna':
+        case 'tune':
+            ComfyJS.Say(`@${user} is loving this helping of tuna. Maybe they want to hear more like it?`);
+
+            break;
+
+        case 'whattune':
+        case 'trackname':
+        case 'trackid':
+        case 'tunename':
+            ComfyJS.Say(`Hey, @the_random_encounter, your biggest fan, @${user}, wants to know the name of this track. Whoever knows, help 'em out!`);
+
+            break;
+
+        case 'hug':
+            target = '';
+            if (message[0] === '@') {
+                target = message.substring(1);
+            } else {
+                target = message;
+            }
+
+            ComfyJS.Say(`@${user} runs over and gives @${target} a giant bear hug! FEEL THE LOVE!`);
+
+            const cmdMem = { cmd: `${cmd}`, user: `${user}`, recip: `${target}` };
+            cmdMemArray.push(cmdMem);
+
+
+            break;
+
+        case 'hugback':
+
+            if (user == hugTarget) {
+                ComfyJS.Say(`@${user} gives `)
+            }
+
+            break;
+
+        case 'kiss':
+            target = '';
+            if (message[0] === '@') {
+                target = message.substring(1);
+            } else {
+                target = message;
+            }
+
+            ComfyJS.Say(`@${user} plants a big fat kiss right on @${target} 's lips! So much love in the air!`);
+
+            break;
+
+        case 'spank':
+            target = '';
+            if (message[0] === '@') {
+                target = message.substring(1);
+            } else {
+                target = message;
+            }
+
+            ComfyJS.Say(`@${user} bends @${target} over their knee and gives them a good spanking! How risque!`);
+
+            break;
+
+        case 'bet':
+
+            let [gameType, betAmt] = message.split(" ");
+            let debugTokens = 100000;
+            let payout;
+
+            if (gameType == '' || betAmt == '') {
+                ComfyJS.Say(`You need to specify a game type first, followed by your bet amount. Type !games for a list of playable games.`);
+
+                break;
+            }
+
+            let userAvailableTokens = 0;
+
+            if (userAvailableTokens < betAmt) {
+                ComfyJS.Say(`Not enough tokens available to bet, ${user}. Try a lesser amount, and !checktokens to see how many you have.`);
+
+                break;
+            }
+
+            switch (gameType) {
+                case 'dice':
+
+                    let diceRoll = Math.floor(Math.random() * 6) + 1;
+
+                    if (diceRoll == 7) {
+                        let winnings = betAmt * 2;
+                        debugTokens = debugTokens + winnings;
+                        ComfyJS.Say(`The die came up '${diceRoll}'! You win! Your bet was '${betAmt}, total winnings are '${winnings}!`);
+                        break;
+                    } else {
+                        ComfyJS.Say(`The die came up '${diceRoll}'! You had to roll a 7 to win. Better luck next time! Your bet of '${betAmt} has been deducted from your tokens.`);
+                        debugTokens = debugTokens - betAmt;
+                        break;
+                    }
+                case 'slots':
+
+                    const symbolList = [
+                        'VirtualHug',
+                        'SingsMic',
+                        'SingsNote',
+                        'TwitchUnity',
+                        'StinkyCheese',
+                        'MrDestructoid',
+                        'PJSalt',
+                        'duDudu',
+                        'KAPOW',
+                        'PopCorn'
+                    ]
+
+                    const rollOutcome = randInt(1, 9);
+
+                    if (rollOutcome > 4) {
+                        let listSize = symbolList.length;
+                        let arrayLoc = Math.floor(Math.random() * listSize);
+
+                        let chosenSymbol = symbolList[arrayLoc];
+                        let betModifier = arrayLoc * 1.25;
+
+                        payout = betAmt * betModifier;
+
+                        ComfyJS.Say(`Your spin: ${chosenSymbol} ${chosenSymbol} ${chosenSymbol} - WINNER! Bet modifier of result: ${betModifier} - Payout: ${payout} tokens!`);
+                        userDB.updateTokens(user, payout);
+                    } else {
+
+                    }
+                    break;
+
+                case 'roulette':
+                    break;
+
+                default:
+                    break;
+            }
+
+            break;
+
+        case 'tip':
+
+            ComfyJS.Say(`Consider supporting the stream! Subscriptions, bits, or even direct tips are immensely helpful, and go towards new music, new gear, or other stream/studio-related items. Tip directly at https://streamelements.com/the_random_encounter/tip`);
+
+            break;
+
+        case 'addcmd':
+        case 'addcommand':
+
+            let index = message.indexOf(" ");  // Gets the first index where a space occours
+            let newCmd = message.substr(0, index); // Gets the first part
+            let cmdSyntax = message.substr(index + 1);  // Gets the text part
+
+            if (user.broadcaster == true) { adminLvl = 5; }
+            else if (user.moderator == true) { adminLvl = 4; }
+            else if (user.founder == true) { adminLvl = 3; }
+            else if (user.vip == true) { adminLvl = 2; }
+            else if (user.subscriber == true) { adminLvl = 1; }
+            else { adminLvl = 0; }
+
+            if (newCmd.charAt(0 == '!')) { newCmd = newCmd.substr(1, newCmd.length); }
+
+            userDB.addCmd(newCmd, cmdSyntax, user, adminLvl);
+
+
+            break;
+
+        case 'remcmd':
+        case 'removecommand':
+        case 'remcommand':
+        case 'removecmd':
+
+            if (user.broadcaster == true) { adminLvl = 5; }
+            else if (user.moderator == true) { adminLvl = 4; }
+            else if (user.founder == true) { adminLvl = 3; }
+            else if (user.vip == true) { adminLvl = 2; }
+            else if (user.subscriber == true) { adminLvl = 1; }
+            else { adminLvl = 0; }
+
+            userDB.remCmd(cmd, adminLvl);
+
+            break;
+
+        case 'caregiver':
+            ComfyJS.Say(`VirtualHug you're riding the 'Caring For A Caregiver' 3 day raid train to help raise FUNDS for a wonderful caregiver who has been diagnosed with Stage 3 Lymphoma - Please check out the GOFUNDME link for more info! - https://gofund.me/c93058d1 
+                        VirtualHug`);
+
+            break;
+
+        default:
+
+            userDB.getCmd(cmd, user);
+            logType = 'CUSTCMD';
+            break;
+    }
 
     logXmit(`!${cmd} ${message}`, logType, user);
 
-    // Parse command by case, execute
-    if (cmd[1] == '!') { }
-    else {
-        switch (cmd.toLowerCase()) {
-
-            case 'command':
-            case 'commands':
-                //ComfyJS.Say('For a complete command list and their functions, please goto https://www.random-encounter.net/botcmds/');
-                ComfyJS.Say(`Completed commands: !hello, !commands, !cheers/!toast, !so/!shoutout, !lurk, !hype/!rage, !kr, !botiq, !madlove, !hug, !kiss, !spank, !doctor, !dice/!rolldice/!diceroll, !tuna/!tune, !whattune/!trackid/!tunename, !banger, !discord, !throwdown, !thrust, !tuesday, !wednesday`);
-                ComfyJS.Say(`Commands under development/not fully implemented: !adjective, !tokens/!checktokens, !bet`);
-                break;
-
-            case 'hello':
-                ComfyJS.Say(`@${user}, it is good to see you! Hello!`);
-                break;
-
-            case 'byebyebot':
-                if (flags.broadcaster) {
-                    ComfyJS.Say(`Alright, I'm out! Bye Felicia!`);
-                    userDB.disconnect();
-                    ComfyJS.Disconnect();
-                }
-                break;
-
-            case 'beginstream':
-                if (flags.broadcaster) {
-
-                    raidTrainInit = setTimeout(raidTrainAnnounce, 480000) // Initial Raid Train Streams announcement, 8m delay
-                    raidTrainInterval = setInterval(raidTrainAnnounce, 2400000); // Announce Raid Train Streams in 30m intervals
-
-                    moneyTipInit = setTimeout(tipAnnounce, 300000); // Initial tip link announcement, 5m delay
-                    moneyTipInterval = setInterval(tipAnnounce, 900000); // Announce tip link in 15m intervals
-
-                    helpTipInterval = setInterval(generateTip, 300000); // Random tips every five minutes
-
-                    // subathonInit = setTimeout(subathonAnnounce, 180000); // Initial Subathon announcement, 3m delay
-                    // subathonInterval = setInterval(subathonAnnounce, 1200000); // Announce Subathon, 20m intervals
-
-                    streamActive = true;
-                    updatedUsersList = [];
-
-                    console.log(` CMD LOG: Broadcaster began stream timer. Time-delayed events and triggers active.`);
-                    ComfyJS.Say(`Done. Stream timer has begun.`);
-                }
-                break;
-
-            case 'begin2ndstream':
-                if (flags.broadcaster) {
-
-                    raidTrainInit = setTimeout(raidTrainAnnounce, 480000) // Initial Raid Train Streams announcement, 8m delay
-                    raidTrainInterval = setInterval(raidTrainAnnounce, 2400000); // Announce Raid Train Streams in 30m intervals
-
-                    moneyTipInit = setTimeout(tipAnnounce, 300000); // Initial tip link announcement, 5m delay
-                    moneyTipInterval = setInterval(tipAnnounce, 900000); // Announce tip link in 15m intervals
-
-                    helpTipInterval = setInterval(generateTip, 300000); // Random tips every five minutes
-
-                    // subathonInit = setTimeout(subathonAnnounce, 180000); // Initial Subathon announcement, 3m delay
-                    // subathonInterval = setInterval(subathonAnnounce, 1200000); // Announce Subathon, 20m intervals
-
-                    streamActive = true;
-                    secondDailyStream = true;
-                    updatedUsersList = [];
-
-                    console.log(` CMD LOG: Broadcaster began stream timer. Second stream flagged, time-delayed events and triggers active.`);
-                    ComfyJS.Say(`Done. Stream timer has begun. Second daily stream registered.`);
-                }
-
-            case 'endstream':
-                if (flags.broadcaster) {
-
-
-                    clearTimeout(raidTrainInit);
-                    clearInterval(raidTrainInterval);
-
-                    clearTimeout(moneyTipInit);
-                    clearInterval(moneyTipInterval);
-
-                    clearInterval(helpTipInterval);
-
-                    // clearTimeout(subathonInit);
-                    // clearInterval(subathonInterval);
-
-                    streamActive = false;
-                    secondDailyStream = false;
-
-                    console.log(` CMD LOG: Broadcaster ended stream timer. Time-delayed events and triggers disabled.`);
-                    ComfyJS.Say(`Done. Stream timer ended.`);
-                }
-                break;
-
-            case 'cheers':
-            case 'toast':
-                target = '';
-                if (message == '') {
-                    ComfyJS.Say(`@${user} wants to celebrate the good times with a toast! Cheers, ${user}`);
-                    break;
-                } else {
-                    if (message[0] === '@') { target = message.substring(1); } else { target = message; };
-                    ComfyJS.Say(`@${user} wants to celebrate the good times with you, @${target}! Cheers!`);
-                    break;
-                }
-
-            case 'so':
-            case 'shoutout':
-                target = '';
-                if (message[0] === '@') {
-                    target = message.substring(1);
-                } else {
-                    target = message;
-                }
-                ComfyJS.Say(`@${user} wants to give a mad shoutout to the amazing @${target}! It takes less than ten seconds to click the link and follow their profile, and they deserve the recognition! https://www.twitch.tv/${target}/`);
-                break;
-
-            case 'lurk':
-                ComfyJS.Say(`@${user} has decided they have something better to do, receding into the shadows. Catch you later, wallflower!`);
-                break;
-
-            case 'hype':
-            case 'rage':
-                ComfyJS.Say(`djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty djbriskBass djbriskParty`);
-                break;
-
-            case 'kr':
-            case 'knightsradiant':
-            case 'stormlight':
-                ComfyJS.Say(`The hallowed oaths must again be spoken. Life before death. Strength before weakness. Journey before destination. The Knights Radiant must stand again! @${user} must be a huge Cosmere nerd!`);
-                break;
-
-            case 'botiq':
-                ComfyJS.Say(`I know you don't think I'm very smart, @${user}. It's okay, I know I ride the short bus everyday. I've come to terms with it.`);
-                break;
-
-            case 'madlove':
-                ComfyJS.Say(`AsexualPride boredrAversMadLove BisexualPride boredrAversMadLove GayPride boredrAversMadLove GenderFluidPride boredrAversMadLove IntersexPride boredrAversMadLove LesbianPride boredrAversMadLove NonbinaryPride boredrAversMadLove PansexualPride boredrAversMadLove TransgenderPride boredrAversMadLove`);
-                break;
-
-            case 'userdebug':
-                if (flags.broadcaster) {
-                    ComfyJS.Say(`Performing user debug action. Check console logs for further information.`);
-                    console.log(currentUsersList);
-                } else if (!flags.broadcaster) {
-                    ComfyJS.Say(`Access denied. You are not the broadcaster of this channel. Sorry, mate.`);
-                    console.log(` CMD LOG: User '${user}' attempted to access user debug list. Access denied.`);
-                }
-                break;
-
-            case 'updatelistdebug':
-                if (flags.broadcaster) {
-                    ComfyJS.Say(`Performing updated user list debug action. Check console logs for further information.`);
-                    console.log(updatedUsersList);
-                } else if (!flags.broadcaster) {
-                    ComfyJS.Say(`Access denied. You are not the broadcaster of this channel. Sorry, mate.`);
-                    console.log(` CMD LOG: User '${user}' attempted to access user debug list. Access denied.`);
-                }
-                break;
-
-            case 'doctor':
-                ComfyJS.Say(`Ah, @${user}, sounds like you need a doctor? Well, @doctorknight is the best I can offer. If it helps, he's my master's dad, so I can probably get you a good deal on some back alley surgery...`);
-                break;
-
-            case 'discord':
-                ComfyJS.Say(`Join the Random discord and be a part of our growing community! https://discord.gg/2HyaWdpGGT`)
-                break;
-
-            case 'thrust':
-                target = '';
-                if (message[0] === '@') {
-                    target = message.substring(1);
-                } else {
-                    target = message;
-                }
-
-                ComfyJS.Say(`@${target} is a member of the raid train crew Thrust Tuesday, streaming every Tuesday from 9:00AM PST/12:00PM EST/4:00PM GMT until 12:00AM PST/3:00AM EST/7:00AM GMT, or even later. Catch them at https://www.twitch.tv/${target} and The Throwdown's Linktree https://linktr.ee/ThrustTuesdays`);
-                break;
-
-            case 'tuesday':
-                ComfyJS.Say(`Every Tuesday, @the_random_encounter is getting thrusty with the rest of the Thrust Tuesday crew. Catch him from 11:00PM PST/2:00AM EST/6:00AM GMT till he feels like closing it out. For the rest, check out the linktree link for all the information on line-ups and other cool stuff you could want! https://linktr.ee/ThrustTuesdays`);
-                break;
-
-            case 'ttd':
-            case 'wednesday':
-                ComfyJS.Say(`Every Wednesday, @the_random_encounter is waging war against hardcore! Catch him for an hour at 5:00PM-6:00PM PST/8:00PM-9:00PM EST/12:00-1:00AM GMT. For the rest, check out the linktree link for all the information on line-ups and other cool stuff you could want! https://linktr.ee/ThrowdownThursday`);
-                break;
-
-            case 'throwdown':
-                ComfyJS.Say(`The Throwdown's Linktree https://linktr.ee/ThrowdownThursday`);
-                break;
-
-            case 'adjective':
-                userDB.getAdj(user);
-                //ComfyJS.Say(`@${user}, your RANDOM ADJECTIVE is ${adjective}! And you're stuck with it for good!`);
-                break;
-
-            case 'checktokens':
-            case 'tokens':
-                let amt = userDB.displayTokens(user);
-                //ComfyJS.Say(`@${user}, you currently have ${amtTokens} casino tokens remaining.`);
-                break;
-
-            case 'dice':
-            case 'rolldice':
-            case 'diceroll':
-
-                let [diceAmt, diceSize] = message.split(" ");
-
-                if (diceAmt == '' || diceSize == '') {
-                    ComfyJS.Say(`You must specify 1-10 dice and what kind of dice to roll (think D&D), ${user}. Try !dice 5 20 to roll 5 d20, for example.`);
-                    break;
-                }
-
-                diceSize = diceSize.replace(/\D/g, '');
-
-                diceAmt = Number.parseInt(diceAmt, 10);
-                diceSize = Number.parseInt(diceSize, 10);
-
-                let rollResult = 0;
-                let perDieResult = [];
-                let diceAmtAsWord = ``;
-                let failMessage = ``;
-                let failMessage2 = ``;
-                let failState = false;
-                let failState2 = false;
-
-                if (diceAmt == 0) {
-                    failMessage = `You cannot roll zero dice, @${user}.`;
-                    failState = true;
-                } else if (diceAmt > 10) {
-                    failMessage = `You cannot roll more than ten dice, @${user}.`;
-                    failState = true;
-                }
-
-                if (diceSize == 3 || diceSize == 4 || diceSize == 6 || diceSize == 8 || diceSize == 10 || diceSize == 12 || diceSize == 20 || diceSize == 100) {
-                } else {
-                    failMessage2 = `You must enter a standard number of sides for the dice. Accepted values are 3, 4, 6, 8, 10, 12, 20, or 100. Think D&D!.`;
-                    failState2 = true;
-                }
-
-                if (failState && failState2) {
-                    failMessage = failMessage + ` AND ALSO, `;
-                }
-
-                if (failState || failState2) {
-                    ComfyJS.Say(`${failMessage}${failMessage2}`);
-                    break;
-                } else {
-                    diceResults = diceRoll(diceAmt, diceSize);
-                    rollResult = diceResults[0];
-                    perDieResult = diceResults[1];
-                }
-
-                let lastDieRoll = perDieResult[perDieResult.length - 1];
-                perDieResult.pop();
-                let perDieResultAsString = perDieResult.join(', ');
-
-                switch (Number.parseInt(diceAmt, 10)) {
-                    case 1:
-                        diceAmtAsWord = `one`;
-                        break;
-                    case 2:
-                        diceAmtAsWord = `two`;
-                        break;
-                    case 3:
-                        diceAmtAsWord = `three`;
-                        break;
-                    case 4:
-                        diceAmtAsWord = `four`;
-                        break;
-                    case 5:
-                        diceAmtAsWord = `five`;
-                        break;
-                    case 6:
-                        diceAmtAsWord = `six`;
-                        break;
-                    case 7:
-                        diceAmtAsWord = `seven`;
-                        break;
-                    case 8:
-                        diceAmtAsWord = `eight`;
-                        break;
-                    case 9:
-                        diceAmtAsWord = `nine`;
-                        break;
-                    case 10:
-                        diceAmtAsWord = `ten`;
-                        break;
-                    default:
-                        diceAmtAsWord = `unknown`;
-                        break;
-                }
-
-                if (diceAmt == 1) {
-                    ComfyJS.Say(`@${user} rolled a single ${diceSize}-sided die. The result was ${rollResult}!`);
-                    break;
-                } else if (diceAmt > 1) {
-                    ComfyJS.Say(`@${user} rolled ${diceAmtAsWord} ${diceSize}-sided dice. The results were ${perDieResultAsString}, and ${lastDieRoll} for a total of ${rollResult}!`);
-                    break;
-                } else {
-                    ComfyJS.Say(`Something weird happened in my brain. The dice roll failed. Sorry, boss. Try again?`);
-                    break;
-                }
-                break;
-
-            case 'banger':
-                ComfyJS.Say(`@${user} thinks the current tune is a right royal banger! RAGE!!!`);
-                break;
-
-            case 'tuna':
-            case 'tune':
-                ComfyJS.Say(`@${user} is loving this helping of tuna. Maybe they want to hear more like it?`);
-                break;
-
-            case 'whattune':
-            case 'trackname':
-            case 'trackid':
-            case 'tunename':
-                ComfyJS.Say(`Hey, @the_random_encounter, your biggest fan, @${user}, wants to know the name of this track. Whoever knows, help 'em out!`);
-                break;
-
-            case 'hug':
-                target = '';
-                if (message[0] === '@') {
-                    target = message.substring(1);
-                } else {
-                    target = message;
-                }
-
-                ComfyJS.Say(`@${user} runs over and gives @${target} a giant bear hug! FEEL THE LOVE!`);
-                break;
-
-            case 'kiss':
-                target = '';
-                if (message[0] === '@') {
-                    target = message.substring(1);
-                } else {
-                    target = message;
-                }
-
-                ComfyJS.Say(`@${user} plants a big fat kiss right on @${target} 's lips! So much love in the air!`);
-                break;
-
-            case 'spank':
-                target = '';
-                if (message[0] === '@') {
-                    target = message.substring(1);
-                } else {
-                    target = message;
-                }
-
-                ComfyJS.Say(`@${user} bends @${target} over their knee and gives them a good spanking! How risque!`);
-                break;
-
-            case 'bet':
-
-                let [gameType, betAmt] = message.split(" ");
-                let debugTokens = 100000;
-                let payout;
-
-                if (gameType == '' || betAmt == '') {
-                    ComfyJS.Say(`You need to specify a game type first, followed by your bet amount. Type !games for a list of playable games.`);
-                    break;
-                }
-
-                let userAvailableTokens = 0;
-
-                if (userAvailableTokens < betAmt) {
-                    ComfyJS.Say(`Not enough tokens available to bet, ${user}. Try a lesser amount, and !checktokens to see how many you have.`);
-                    break;
-                }
-
-                switch (gameType) {
-
-                    case 'dice':
-
-                        let diceRoll = Math.floor(Math.random() * 6) + 1;
-
-                        if (diceRoll == 7) {
-                            let winnings = betAmt * 2;
-                            debugTokens = debugTokens + winnings;
-                            ComfyJS.Say(`The die came up '${diceRoll}'! You win! Your bet was '${betAmt}, total winnings are '${winnings}!`);
-                            break;
-                        } else {
-                            ComfyJS.Say(`The die came up '${diceRoll}'! You had to roll a 7 to win. Better luck next time! Your bet of '${betAmt} has been deducted from your tokens.`);
-                            debugTokens = debugTokens - betAmt;
-                            break;
-                        }
-
-                    case 'slots':
-
-                        const symbolList = [
-                            'VirtualHug',
-                            'SingsMic',
-                            'SingsNote',
-                            'TwitchUnity',
-                            'StinkyCheese',
-                            'MrDestructoid',
-                            'PJSalt',
-                            'duDudu',
-                            'KAPOW',
-                            'PopCorn'
-                        ]
-
-                        const rollOutcome = randInt(1, 9);
-
-                        if (rollOutcome > 4) {
-                            let listSize = symbolList.length;
-                            let arrayLoc = Math.floor(Math.random() * listSize);
-
-                            let chosenSymbol = symbolList[arrayLoc];
-                            let betModifier = arrayLoc * 1.25;
-
-                            payout = betAmt * betModifier;
-
-                            ComfyJS.Say(`Your spin: ${chosenSymbol} ${chosenSymbol} ${chosenSymbol} - WINNER! Bet modifier of result: ${betModifier} - Payout: ${payout} tokens!`);
-                            userDB.updateTokens(user, payout);
-                        } else {
-
-                        }
-                        break;
-
-                    case 'roulette':
-
-                        break;
-
-                    default:
-
-                        break;
-                }
-
-                break;
-
-            case 'tip':
-                ComfyJS.Say(`Consider supporting the stream! Subscriptions, bits, or even direct tips are immensely helpful, and go towards new music, new gear, or other stream/studio-related items. Tip directly at https://streamelements.com/the_random_encounter/tip`);
-                break;
-
-            case 'addcmd':
-            case 'addcommand':
-
-                let [newCmd, cmdSyntax] = message.split(" ");
-
-                userDB.addCmd(newCmd, cmdSyntax, user);
-
-                break;
-
-            default:
-
-                userDB.getCmd(cmd);
-
-                break;
-        }
-    }
+    return;
 }
 
 ComfyJS.onJoin = (user, flags, self, extra) => {
@@ -653,20 +840,36 @@ ComfyJS.onHosted = (user, viewers, autohost, extra) => {
 
 ComfyJS.onWhisper = (user, message, flags, self, extra) => {
 
-    const mailOptions = {
-        from: 'talent@random-encounter.net',
-        to: 'danvisibleman@gmail.com',
-        subject: `TWITCH BOT PM FROM '${user}'`,
-        text: message
-    };
+    let msgIndexer = message.indexOf(':');
+    let msgStart = message.substring(0, msgIndexer);
+    let msgContent = message.substring(msgIndexer);
 
-    botMailTransporter.sendMail(mailOptions, function (error, info) {
-        if (error) {
-            console.log(error);
+    if (user.toLowerCase() != 'the_random_encounter') {
+        const mailOptions = {
+            from: 'talent@random-encounter.net',
+            to: 'danvisibleman@gmail.com',
+            subject: `TWITCH BOT PM FROM '${user}'`,
+            text: message
+        };
+
+        botMailTransporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+                console.log(error);
+            } else {
+                console.log(`WHISPER LOG: User '${user}' sent a message. E-mailed successfully. (${info.response})`);
+            }
+        });
+    } else if (flags.broadcaster) {
+        let prefix = msgStart.toLowerCase();
+        if (prefix == 'debug' || prefix == 'cmd') {
+            msgContent =
+                cmdExec()
         } else {
-            console.log(`WHISPER LOG: User '${user}' sent a message. E-mailed successfully. (${info.response})`);
+
         }
-    });
+    }
+
+
 }
 
 ComfyJS.onCheer = (user, message, bits, flags, extra) => {
@@ -783,15 +986,16 @@ function logXmit(data, logType, user) {
     if (typeof user !== "undefined") { logData.sender = user; }
     if (typeof logType !== "undefined") { logData.type = logType; }
 
-    wss.on('connection', wsc => {
-        wsc.on('message', message => {
+    wss.once('connection', wsc => {
+        wsc.once('message', message => {
             console.log(`Received message => ${message}`);
         });
         wsc.send(JSON.stringify(logData));
-        //wsc.close();
+        //wss.removeListener('connection', wsc);
+
     });
 
-    return;
+    return true;
 }
 
 function createTimeStamp() {
@@ -847,15 +1051,19 @@ function generateTip() {
     // Function is ran on a timer interval, intialized at top of file
 
     let tipList = [
-        'Did you know that the_random_encounter is creating me from scratch? Pretty impressive really, even if he does say mean things about me.',
-        'Did you know you can send the_random_encounter an e-mail by sending me a whisper directly? I will forward anything you say to me in private to his e-mail. Nifty, huh?',
-        'Did you know that the_random_encounter has lots of cheeky ways to spend your channel points? Make yourself known and punish his hubris today!',
-        'Did you know that the_random_encounter is adding new features to me rather frequently? Gambling games coming soon! If you have any ideas for commands or features, whisper them to me and I will pass them on.',
-        'Did you know that the_kandi_kid_assassin is one of the_random_encounters best friends, and a glorious DJ as well? If you arent following him, you should! https://www.twitch.tv/the_kandi_kid_assassin',
-        'Interested in supporting the stream directly? Tips are greatly appreciated, and go 100% towards new tracks, new gear, and otherwise improving your streaming experience! https://streamelements.com/the_random_encounter/tip',
-        'Did you know that subscribers are automatically entered into a monthly raffle to win a $25 Twitch eGift Card on the 1st of every month? All subscribers active on the 1st are entered and the winner is drawn on the first livestream of the month!',
-        'Another way you can support the stream directly is by taking a look at the_random_encounters Amazon wish list! All items are for streaming or studio work! https://www.amazon.com/hz/wishlist/ls/2QA8UOEUQVI00?ref_=wl_share',
-        'Did you know you can create your own commands now? Try it out with !addcmd'
+        `Did you know that the_random_encounter is creating me from scratch? Pretty impressive really, even if he does say mean things about me.`,
+        `Did you know you can send the_random_encounter an e-mail by sending me a whisper directly? I will forward anything you say to me in private to his e-mail. Nifty, huh?`,
+        `Did you know that the_random_encounter has lots of cheeky ways to spend your channel points? Make yourself known and punish his hubris today!`,
+        `Did you know that the_random_encounter is adding new features to me rather frequently? Gambling games coming soon! If you have any ideas for commands or features, whisper them to me and I will pass them on.`,
+        `Did you know that the_kandi_kid_assassin is one of the_random_encounter's best friends, and a glorious DJ as well? If you aren't following him, you should! https://www.twitch.tv/the_kandi_kid_assassin`,
+        `Interested in supporting the stream directly? Tips are greatly appreciated, and go 100% towards new tracks, new gear, and otherwise improving your streaming experience! https://streamelements.com/the_random_encounter/tip`,
+        `Did you know that subscribers are automatically entered into a monthly raffle to win a $25 Twitch eGift Card on the 1st of every month? All subscribers active on the 1st are entered and the winner is drawn on the first livestream of the month!`,
+        `Another way you can support the stream directly is by taking a look at the_random_encounter's Amazon wish list! All items are for streaming or studio work! https://www.amazon.com/hz/wishlist/ls/2QA8UOEUQVI00?ref_=wl_share`,
+        `Did you know you can create your own commands now? Try it out with the !addcmd command today, and make your mark on the channel forever!`,
+        `Have you joined the Discord server yet? Its a great place to keep track of announcements, giveaways, promote yourself, get DJing/production help, and otherwise be a part of our growing circle. Check it out! https://discord.gg/2tmbtukkEF`,
+        `Weekly streams, Tuesdays and Wednesdays! Catch Random Encounter closing out Thrust Tuesdays at 1am CST/6am GMT (yes, it's technically a Wednesday), and again Wednesday evening for The Throwdown at 7pm CST/12am GMT! We'd love to see ya there!`,
+        `the_random_encounter is a resident DJ with spinspinsuper! You can catch him doing sets over at his channel from time to time, and if you haven't followed spinspinsuper already, you are not up with the current meta at all! https://www.twitch.tv/spinspinsuper/`,
+        `Everyone gets their own adjective assigned to them when they first join the channel, did you know? It's random, of course, but some say that the adjective you get is chosen by the stars... Learn yours with the !adjective command today!`
     ]
     let listSize = tipList.length;
     let arrayLoc = Math.floor(Math.random() * listSize);
@@ -865,3 +1073,32 @@ function generateTip() {
     ComfyJS.Say(`${chosenTip}`);
     return;
 }
+
+function pushCmdMemObj(cmd, user, target) {
+
+    const arrayLen = cmdMemArray.length();
+    const arrayLoc = arrayLen - 1;
+
+    const cmdMem = {
+        cmd: `${cmd}`,
+        user: `${user}`
+    };
+
+    const cmdMem2 = {
+        recipient: `${target}`,
+        arrayLoc: `${arrayLoc}`,
+        memory: `${cmdMem}`
+    }
+
+    if (arrayLen > 0) {
+        cmdMemArray[arrayLen] = cmdMem2;
+        return true;
+    } else if (arrayLen == 0) {
+        cmdMemArray[0] = cmdMem2;
+        return true;
+    } else {
+        console.log(` FUNC ERROR: pushCmdMemObj FAILED - ${console.error}`)
+        return false;
+    }
+}
+

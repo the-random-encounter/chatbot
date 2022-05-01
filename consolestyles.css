@@ -1,3 +1,5 @@
+<<<<<<< HEAD
+<<<<<<< HEAD
 .logTable {
     padding: 0;
     margin: auto;
@@ -84,4 +86,180 @@
 
 .red-text {
     color: rgba(226, 100, 100, 0.863);
+=======
+.logTable {
+    padding: 0;
+    margin: auto;
+    border-collapse: collapse;
+    width: 99%;
+    text-align: center;
+    color: whitesmoke;
+}
+
+.logTableHeaderRow {
+    color: darkorange;
+    font-weight: bold;
+    height: 50px;
+}
+
+.logTableNum {
+    width: 3%;
+    text-align: center;
+}
+
+.logTableBodyRow:nth-child(odd) {
+    background-color: rgba(128, 128, 128, 0.050);
+}
+
+.logTableSender {
+    color: rgba(44, 156, 0, 0.863);
+    width: 22%;
+    padding: 5;
+    margin: 2;
+}
+
+.logTableSenderBot {
+    color: rgba(226, 100, 100, 0.863);
+    width: 22%;
+    padding: 5;
+    margin: 2;
+}
+
+.logTableSenderConsole {
+    color: rgba(100, 159, 226, 0.863);
+    width: 22%;
+    padding: 5;
+    margin: 2;
+}
+
+.logTableSenderHost {
+    color: rgba(137, 0, 150, 0.863);
+    width: 22%;
+    padding: 5;
+    margin: 2;
+}
+
+.logTableMessage {
+    text-align: justify;
+}
+
+.logTableType {
+    width: 5%;
+    padding: 10;
+    margin: 2;
+}
+
+.logTableTimestamp {
+    width: 12%;
+    padding: 10;
+    margin: 2;
+}
+
+.logTableBodyRow:hover {
+    background-color: darkorange;
+}
+
+.logTable tr td {
+    height: 25px;
+}
+
+.logTable tdc {
+    color: rgba(100, 159, 226, 0.863);
+}
+
+.blue-text {
+    color: rgba(100, 159, 226, 0.863);
+}
+
+.red-text {
+    color: rgba(226, 100, 100, 0.863);
+>>>>>>> 2d96ebe7e504abe81772bf0e830afb501d4e817d
+=======
+.logTable {
+    padding: 0;
+    margin: auto;
+    border-collapse: collapse;
+    width: 99%;
+    text-align: center;
+    color: whitesmoke;
+}
+
+.logTableHeaderRow {
+    color: darkorange;
+    font-weight: bold;
+    height: 50px;
+}
+
+.logTableNum {
+    width: 3%;
+    text-align: center;
+}
+
+.logTableBodyRow:nth-child(odd) {
+    background-color: rgba(128, 128, 128, 0.050);
+}
+
+.logTableSender {
+    color: rgba(44, 156, 0, 0.863);
+    width: 22%;
+    padding: 5;
+    margin: 2;
+}
+
+.logTableSenderBot {
+    color: rgba(226, 100, 100, 0.863);
+    width: 22%;
+    padding: 5;
+    margin: 2;
+}
+
+.logTableSenderConsole {
+    color: rgba(100, 159, 226, 0.863);
+    width: 22%;
+    padding: 5;
+    margin: 2;
+}
+
+.logTableSenderHost {
+    color: rgba(137, 0, 150, 0.863);
+    width: 22%;
+    padding: 5;
+    margin: 2;
+}
+
+.logTableMessage {
+    text-align: justify;
+}
+
+.logTableType {
+    width: 5%;
+    padding: 10;
+    margin: 2;
+}
+
+.logTableTimestamp {
+    width: 12%;
+    padding: 10;
+    margin: 2;
+}
+
+.logTableBodyRow:hover {
+    background-color: darkorange;
+}
+
+.logTable tr td {
+    height: 25px;
+}
+
+.logTable tdc {
+    color: rgba(100, 159, 226, 0.863);
+}
+
+.blue-text {
+    color: rgba(100, 159, 226, 0.863);
+}
+
+.red-text {
+    color: rgba(226, 100, 100, 0.863);
+>>>>>>> refs/remotes/origin/main
 }
