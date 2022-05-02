@@ -13,6 +13,7 @@
 // Import Environment variables & configure event emitter listeners
 require('dotenv').config();
 require('events').EventEmitter.prototype._maxListeners = 100;
+//module.export.cmdExec = cmdExec;
 
 // Declare CONST library requirements
 const ComfyJS = require('comfy.js');
@@ -35,6 +36,26 @@ const botMailTransporter = nodemailer.createTransport({
     }
 });
 
+const path = require('path');
+
+const PORT = 3001;
+
+const http2 = require('http');
+const express2 = require('express');
+const socketio = require('socket.io');
+const formatMessage = require('./helpers/formatDate');
+const {
+    getActiveUser,
+    exitRoom,
+    newUser,
+    getIndividualRoomUsers
+} = require('./helpers/userHelper');
+const { cp } = require('fs');
+
+const app2 = express2();
+const chatServer = http2.createServer(app2);
+const io = socketio(chatServer);
+
 // Declare global variables
 // Script timing variable
 var scriptStart = new Date().getTime();
@@ -49,23 +70,6 @@ let streamActive = false;
 let secondDailyStream = false;
 
 // Generic message global var
-let WebsocketSends = 0;
-let msg;
-
-// Command specific flags and arrays
-
-/*class recipMem {
-    command;
-    giver;
-    recipient;
-
-    constructor(command, giver, recipient, arrayLoc) {
-        this.command = command;
-        this.giver = giver;
-        this.recipient = recipient;
-        this.arrayLoc = 
-    }
-}*/
 
 // Init WebSocket Events
 wss.on('connection', wsc => {
@@ -78,6 +82,62 @@ wss.on('connection', wsc => {
 // Start Websocket Server
 server.listen(3000, () => {
     console.log(`Websocket server started on port 3000`);
+});
+
+chatServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Set public folder
+app2.use(express.static(path.join(__dirname, 'public')));
+
+// this block will run when the client connects
+io.on('connection', socket => {
+    socket.on('joinRoom', ({ username, room }) => {
+        const user1 = newUser(socket.id, username, room);
+
+        socket.join(user1.room);
+
+        // General welcome
+        socket.emit('message', formatMessage("Twitch Chat Backend", 'Messages are limited to this room! '));
+
+        // Broadcast everytime users connects
+        socket.broadcast
+            .to(user1.room)
+            .emit(
+                'message',
+                formatMessage("Twitch Chat Backend", `${user1.username} has joined the room`)
+            );
+
+        // Current active users and room name
+        io.to(user1.room).emit('roomusers', {
+            room: user1.room,
+            users: getIndividualRoomUsers(user1.room)
+        });
+    });
+
+    // Listen for client message
+    socket.on('chatMessage', msg => {
+        const user1 = getActiveUser(socket.id);
+
+        io.to(user1.room).emit('message', formatMessage(user1.username, msg));
+    });
+
+    // Runs when client disconnects
+    socket.on('disconnect', () => {
+        const user1 = exitRoom(socket.id);
+
+        if (user1) {
+            io.to(user1.room).emit(
+                'message',
+                formatMessage("Twitch Chat Backend", `${user1.username} has left the room`)
+            );
+
+            // Current active users and room name
+            io.to(user1.room).emit('roomusers', {
+                room: user1.room,
+                users: getIndividualRoomUsers(user1.room)
+            });
+        }
+    });
 });
 
 // Init Twitch IRC Server Connection
@@ -122,6 +182,375 @@ ComfyJS.onChat = (user, message, flags, self, extra) => {
 
 ComfyJS.onCommand = (user, command, message, flags, extra) => {
 
+    cmdExec(user, command, message, flags, extra);
+
+    return;
+}
+
+ComfyJS.onJoin = (user, flags, self, extra) => {
+    var scriptRuntime = new Date().getTime();
+    var timeSinceBegin = scriptRuntime - scriptStart;
+    let runTimeMinutes = timeSinceBegin / 60000;
+    let upTime = msToTime(timeSinceBegin);
+    let runTime = `Script Runtime: ${upTime} (${timeSinceBegin}ms)`;
+    const logType = 'JOIN';
+    let logMsg;
+
+    if (user == 'stressedgrad' || user == 'academyimpossible' || user == 'randomencounterbot' || user == 'streamelements' || user == 'moobot' || user == 'streamlabs' || user == 'anothertvviewer' || user == 'dudutopaz1') {
+        console.log(`JOIN LOG: ${user} has joined channel, is on blacklist. Ignoring.`);
+    } else if (user === 'the_random_encounter' && timeSinceBegin > 100000) {
+        //ComfyJS.Say('Welcome to your castle, master.')
+        console.log(`JOIN LOG: Channel owner the_random_encounter has joined the channel. ${upTime}`);
+    } else if (timeSinceBegin > 100000) {
+        console.log(`JOIN LOG: ${user} has joined channel. ${upTime}`);
+    }
+
+    let userPOS = currentUsersList.indexOf(user);
+    let userUpdatedPOS = updatedUsersList.indexOf(user);
+
+    const userData = {
+        "username": user,
+        "twitchID": extra.userID,
+        "broadcaster": flags.broadcaster,
+        "moderator": flags.moderator,
+        "founder": flags.founder,
+        "vip": flags.vip,
+        "subscriber": flags.subscriber
+    };
+
+    if (userPOS == -1) {
+        currentUsersList.push(user);
+        console.log(`JOIN LOG: New user in channel named ${user}. Added to users list.`);
+        logXmit(`New user in channel named ${user}. Added to users list.`, logType);
+    } else if (userPOS != -1) {
+        console.log(`JOIN LOG: User '${user}' joined channel, hasn't been pruned from user list. Leaving alone.`);
+        logXmit(`User '${user}' joined channel, hasn't been pruned from user list. Leaving alone.`, logType);
+    } else {
+        console.log(`JOIN LOG: Unknown error regarding new user '${user}' in channel. No action taken.`);
+        logXmit(`Unknown error regarding new user '${user}' in channel. No action taken.`, logType);
+    }
+
+    let userAdded = userDB.addUser(userData);
+
+    if (userAdded) {
+        updatedUsersList.push(user);
+        console.log(`JOIN LOG: New user '${user}' has been successfully added.`);
+        logXmit(`New user '${user}' has been successfully added.`, logType);
+    } else {
+        if (userUpdatedPOS == -1) {
+            updatedUsersList.push(user);
+            userDB.lastSeen(user);
+            console.log(`JOIN LOG: User '${user}' has been updated and added to updated users list.`);
+            logXmit(`User '${user}' has been updated and added to updated users list.`, logType);
+        } else {
+            console.log(`JOIN LOG: User '${user} present on updated users list (Index: ${userUpdatedPOS}). No action taken.`);
+            logXmit(`User '${user} present on updated users list (Index: ${userUpdatedPOS}). No action taken.`, logType);
+        }
+    }
+
+    userPOS = 0;
+}
+
+ComfyJS.onSub = (user, message, subTierInfo, extra) => {
+    console.log(`LOG>> ${user} subbed at tier ${subTierInfo}.`);
+    //ComfyJS.Say(`Wow! Thank you so much subscribing at tier ${subTierInfo}, @${user}! Much appreciated, and much love!`);
+}
+
+ComfyJS.onResub = (user, message, streakMonths, cumulativeMonths, subTierInfo, extra) => {
+    console.log(`LOG>> ${user} resubbed at tier ${subTierInfo}. Streak: ${streakMonths}, Cumulative: ${cumulativeMonths}`);
+    // ComfyJS.Say(`Thank you for resubbing at tier ${subTierInfo}, @${user}! They now have a sub streak of ${streakMonths}, with ${cumulativeMonths} months total! Much appreciated, much love!`);
+}
+
+ComfyJS.onSubGift = (gifterUser, streakMonths, recipientUser, senderCount, subTierInfo, extra) => {
+    console.log(`LOG>> ${gifterUser} purchased ${senderCount} tier ${subTierInfo} gift subs for ${recipientUser}, giving them a streak of ${streakMonths}.`);
+    //ComfyJS.Say(`@${gifterUser} purchased ${senderCount} tier ${subTierInfo} gift subs for @${recipientUser}, giving them a streak of ${streakMonths}. Wow, thank you so much! Much love.`);
+}
+
+ComfyJS.onSubMysteryGift = (gifterUser, numbOfSubs, senderCount, subTierInfo, extra) => {
+    console.log(`LOG>> ${gifterUser} mystery purchased ${numbOfSubs} tier ${subTierInfo}. senderCount: ${senderCount}.`);
+    // ComfyJS.Say('A mystery gifter just gifted ' + numbOfSubs + ' subs! Thank you for your tall, dark, and mysterious gifts!');
+}
+
+ComfyJS.onGiftSubContinue = (user, sender, extra) => {
+    console.log(`LOG>> ${user} continued their sub via a gift sub from ${sender}.`);
+    // ComfyJS.Say(`Thank you for continuing your subscription, @${user}! Be sure to thank @${sender} for the gift! Much love to you both!`);
+}
+
+ComfyJS.onRaid = (user, viewers, extra) => {
+    console.log(`LOG>> ${user} raided the channel with ${viewers} in tow.`);
+    ComfyJS.Say(`Incoming raid from @${user} with ${viewers} viewers in tow! Welcome raiders! Please refresh your browsers once you are loaded in. Glad to have you! https://www.twitch.tv/the_random_encounter`);
+}
+
+ComfyJS.onHosted = (user, viewers, autohost, extra) => {
+    console.log(`LOG>> ${user} hosted the channel with ${viewers} viewers. Authost: ${autohost}.`);
+    ComfyJS.Say(`@${user} is hosting the channel with ${viewers} viewers. Thanks for the support, and glad to have you guys!`);
+}
+
+ComfyJS.onWhisper = (user, message, flags, self, extra) => {
+
+    let msgIndexer = message.indexOf(':');
+    let msgStart = message.substring(0, msgIndexer);
+    let msgContent = message.substring(msgIndexer);
+
+    if (user.toLowerCase() != 'the_random_encounter') {
+        const mailOptions = {
+            from: 'talent@random-encounter.net',
+            to: 'danvisibleman@gmail.com',
+            subject: `TWITCH BOT PM FROM '${user}'`,
+            text: message
+        };
+
+        botMailTransporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+                console.log(error);
+            } else {
+                console.log(`WHISPER LOG: User '${user}' sent a message. E-mailed successfully. (${info.response})`);
+            }
+        });
+    } else if (flags.broadcaster ||user.toLowerCase() == "the_random_encounter") {
+        let prefix = msgStart.toLowerCase();
+        if (prefix == 'debug' || prefix == 'cmd') {
+            msgContent =
+                cmdExec()
+        } else {
+
+        }
+    }
+
+
+}
+
+ComfyJS.onCheer = (user, message, bits, flags, extra) => {
+    console.log(`LOG>> ${user} cheered a total of ${bits} bits. Message: ${message}`);
+    ComfyJS.Say(`@${user} just cheered, sending a total of ${bits} of the juiciest bits out! Wow! Thank you very much, and much love!`);
+}
+
+ComfyJS.onPart = (user, self, extra) => {
+    var scriptRuntime = new Date().getTime();
+    var timeSinceBegin = scriptRuntime - scriptStart;
+    let upTime = msToTime(timeSinceBegin);
+    let runTime = `Script Runtime: ${upTime} (${timeSinceBegin}ms)`;
+    const logType = 'PART';
+    let logMsg;
+
+    let userPOS = currentUsersList.indexOf(user);
+    let userUpdatedPOS = updatedUsersList.indexOf(user);
+
+    if (userPOS == -1) {
+        logMsg = `User '${user}' left channel, but was not on users list beforehand. Leaving alone. ${runTime}`;
+        console.log(`PART LOG: ` + logMsg);
+        logXmit(logMsg, logType);
+    } else if (userPOS != -1) {
+        currentUsersList.splice(userPOS, 1);
+        logMsg = `User '${user}' has left channel, pruned username from active users list. ${runTime}`;
+        console.log(`PART LOG: ` + logMsg);
+        logXmit(logMsg, logType);
+    } else {
+        logMsg = `Unknown exception regarding user '${user}' leaving channel. UserPOS variable not -1 or above 1. Leaving alone. ${runTime}`;
+        console.log(`PART LOG: ` + logMsg);
+        logXmit(logMsg, logType);
+    }
+
+    let userAdded = userDB.addUser(user);
+
+    if (userAdded) {
+        updatedUsersList.push(user);
+        logMsg = `New user '${user}' has been successfully added.`;
+        console.log(`PART LOG: ` + logMsg);
+        logXmit(logMsg, logType);
+    } else {
+        if (userUpdatedPOS == -1) {
+            updatedUsersList.push(user);
+            userDB.lastSeen(user);
+            logMsg = `User '${user}' has been updated and added to updated users list.`;
+            console.log(`PART LOG: ` + logMsg);
+            logXmit(logMsg, logType);
+        }
+    }
+
+    userPOS = 0;
+}
+
+//
+// START OF CUSTOM FUNCTION DEFINITIONS
+//
+
+function kandiKidRaidAlert() {
+
+    // Prompts chat about upcoming raid to the_kandi_kid_assassin's channel
+    // Currently deprecated, Sunday streams with Nick are on pause
+
+    var timeRightNow = new Date();
+    var millsTill1145pm = new Date(timeRightNow.getFullYear(), timeRightNow.getMonth(), timeRightNow.getDate(), 23, 45, 0, 0) - timeRightNow;
+
+    if (millsTill1145pm < 0) {
+        millsTill1145pm += 396000000; // it's after 11:45pm, try 11:45pm tomorrow.
+    }
+
+    setTimeout(function () { ComfyJS.Say(`It's 11:45pm. In 15 minutes we'll be raiding over to @the_kandi_kid_assassin 's channel. Stick around and hold tight!`) }, millsTill1145pm);
+
+}
+
+function diceRoll(numDice, diceSize) {
+
+    // Generates a dice roll given number of dice and size of dice
+
+    let diceResult = 0;
+    let perDieRoll = [];
+
+    for (var i = 1; i <= numDice; i++) {
+
+        let diceRoll = Math.floor(Math.random() * diceSize) + 1;
+
+        perDieRoll.push(diceRoll);
+        diceResult = diceResult + diceRoll;
+    }
+
+    return [diceResult, perDieRoll];
+}
+
+function randInt(floor, ceiling) {
+
+    // Generates a random integer between the floor & ceiling provided
+
+    return Math.floor(Math.random() * (ceiling - floor + 1) + floor);
+
+}
+
+function logXmit(data, logType, user) {
+
+    // Transmits logging data to inline log table via Websocket server
+    // Designed for viewing in OBS Studio
+
+    const time = createTimeStamp();
+
+    let logData = {
+        timestamp: time,
+        type: 'LOG',
+        sender: 'CONSOLE',
+        msg: data
+    }
+
+    if (typeof user !== "undefined") { logData.sender = user; }
+    if (typeof logType !== "undefined") { logData.type = logType; }
+
+    wss.once('connection', wsc => {
+        wsc.once('message', message => {
+            console.log(`Received message => ${message}`);
+        });
+        wsc.send(JSON.stringify(logData));
+        //wss.removeListener('connection', wsc);
+
+    });
+
+    return true;
+}
+
+function createTimeStamp() {
+
+    // Creates the timestamp property used in logXmit function
+    // Final Format: MM/DD/YYYY - HH:MM:SS AM/PM
+
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const d = new Date();
+    let AMPM = 'AM';
+    let dayOfMonth = d.getDate();
+    let monthOfYear = d.getMonth() + 1;
+    let dayHours = d.getHours();
+    let dayMinutes = d.getMinutes();
+    let daySeconds = d.getSeconds();
+    let fullYear = d.getFullYear();
+    let dayOfWeek = days[d.getDay()];
+
+    if (dayHours > 12) {
+        dayHours = dayHours - 12;
+        AMPM = 'PM';
+    }
+    if (dayHours < 10) { dayHours = '0' + dayHours; }
+    if (dayMinutes < 10) { dayMinutes = '0' + dayMinutes; }
+    if (daySeconds < 10) { daySeconds = '0' + daySeconds; }
+
+    let timestamp = monthOfYear + '/' + dayOfMonth + '/' + fullYear + " - " + dayHours + ':' + dayMinutes + ':' + daySeconds + ` ${AMPM}`;
+
+    return timestamp;
+}
+
+function padDigits(num) { return num.toString().padStart(2, '0'); } // Just pads a digit with a leading zero
+
+function msToTime(milliseconds) {
+
+    // Converts time given in milliseconds to the format 'XXh XXm XXs'
+    let seconds = Math.floor(milliseconds / 1000);
+    let minutes = Math.floor(seconds / 60);
+    let hours = Math.floor(minutes / 60);
+    let AMPM = 'AM';
+
+    seconds = seconds % 60;
+    minutes = minutes % 60;
+
+    hours = hours % 24;
+
+    return `${padDigits(hours)}h ${padDigits(minutes)}m ${padDigits(seconds,)}s`;
+}
+
+function generateTip() {
+
+    // Picks a random tip from the list and broadcasts it to chat
+    // Function is ran on a timer interval, intialized at top of file
+
+    let tipList = [
+        `Did you know that the_random_encounter is creating me from scratch? Pretty impressive really, even if he does say mean things about me.`,
+        `Did you know you can send the_random_encounter an e-mail by sending me a whisper directly? I will forward anything you say to me in private to his e-mail. Nifty, huh?`,
+        `Did you know that the_random_encounter has lots of cheeky ways to spend your channel points? Make yourself known and punish his hubris today!`,
+        `Did you know that the_random_encounter is adding new features to me rather frequently? Gambling games coming soon! If you have any ideas for commands or features, whisper them to me and I will pass them on.`,
+        `Did you know that the_kandi_kid_assassin is one of the_random_encounter's best friends, and a glorious DJ as well? If you aren't following him, you should! https://www.twitch.tv/the_kandi_kid_assassin`,
+        `Interested in supporting the stream directly? Tips are greatly appreciated, and go 100% towards new tracks, new gear, and otherwise improving your streaming experience! https://streamelements.com/the_random_encounter/tip`,
+        `Did you know that subscribers are automatically entered into a monthly raffle to win a $25 Twitch eGift Card on the 1st of every month? All subscribers active on the 1st are entered and the winner is drawn on the first livestream of the month!`,
+        `Another way you can support the stream directly is by taking a look at the_random_encounter's Amazon wish list! All items are for streaming or studio work! https://www.amazon.com/hz/wishlist/ls/2QA8UOEUQVI00?ref_=wl_share`,
+        `Did you know you can create your own commands now? Try it out with the !addcmd command today, and make your mark on the channel forever!`,
+        `Have you joined the Discord server yet? Its a great place to keep track of announcements, giveaways, promote yourself, get DJing/production help, and otherwise be a part of our growing circle. Check it out! https://discord.gg/2tmbtukkEF`,
+        `Weekly streams, Tuesdays and Wednesdays! Catch Random Encounter closing out Thrust Tuesdays at 1am CST/6am GMT (yes, it's technically a Wednesday), and again Wednesday evening for The Throwdown at 7pm CST/12am GMT! We'd love to see ya there!`,
+        `the_random_encounter is a resident DJ with spinspinsuper! You can catch him doing sets over at his channel from time to time, and if you haven't followed spinspinsuper already, you are not up with the current meta at all! https://www.twitch.tv/spinspinsuper/`,
+        `Everyone gets their own adjective assigned to them when they first join the channel, did you know? It's random, of course, but some say that the adjective you get is chosen by the stars... Learn yours with the !adjective command today!`
+    ]
+    let listSize = tipList.length;
+    let arrayLoc = Math.floor(Math.random() * listSize);
+
+    let chosenTip = tipList[arrayLoc];
+
+    ComfyJS.Say(`${chosenTip}`);
+    return;
+}
+
+function pushCmdMemObj(cmd, user, target) {
+
+    const arrayLen = cmdMemArray.length();
+    const arrayLoc = arrayLen - 1;
+
+    const cmdMem = {
+        cmd: `${cmd}`,
+        user: `${user}`
+    };
+
+    const cmdMem2 = {
+        recipient: `${target}`,
+        arrayLoc: `${arrayLoc}`,
+        memory: `${cmdMem}`
+    }
+
+    if (arrayLen > 0) {
+        cmdMemArray[arrayLen] = cmdMem2;
+        return true;
+    } else if (arrayLen == 0) {
+        cmdMemArray[0] = cmdMem2;
+        return true;
+    } else {
+        console.log(` FUNC ERROR: pushCmdMemObj FAILED - ${console.error}`)
+        return false;
+    }
+}
+
+function cmdExec(user, command, message, flags, extra) {
 
     let cmd = command;
     let target = '';
@@ -146,7 +575,7 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
             break;
 
         case 'byebyebot':
-            if (flags.broadcaster) {
+            if (flags.broadcaster || user.toLowerCase() == "the_random_encounter") {
                 ComfyJS.Say(`Alright, I'm out! Bye Felicia!`);
                 userDB.disconnect();
                 ComfyJS.Disconnect();
@@ -155,20 +584,10 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
             }
 
             break;
-
-        case 'debuglisteners':
-            console.log(`Event Listeners for WSS 'Connection': ${wss.listenerCount('connection')}`);
-            console.log(`Event listeners for WSS 'Send'      : ${wss.listenerCount('send')}`);
-            console.log(`Event listeners for WSS 'Message'   : ${wss.listenerCount('message')}`);
-            //console.log(`Event listeners for WSC 'Send'      : ${wsc.listenerCount('send')}`);
-            //console.log(`Event listeners for WSC 'Message'   : ${wss.wsc.listenerCount('message')}`);git help
-
-
-            break;
-
+        
         case 'bss':
         case 'beginstreamsilent':
-            if (flags.broadcaster) {
+            if (flags.broadcaster || user.toLowerCase() == "the_random_encounter") {
 
                 raidTrainInit = setTimeout(raidTrainAnnounce, 480000) // Initial Raid Train Streams announcement, 8m delay
                 raidTrainInterval = setInterval(raidTrainAnnounce, 2400000); // Announce Raid Train Streams in 30m intervals
@@ -194,7 +613,7 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
             break;
 
         case 'beginstream':
-            if (flags.broadcaster) {
+            if (flags.broadcaster || user.toLowerCase() == "the_random_encounter") {
 
                 raidTrainInit = setTimeout(raidTrainAnnounce, 480000) // Initial Raid Train Streams announcement, 8m delay
                 raidTrainInterval = setInterval(raidTrainAnnounce, 2400000); // Announce Raid Train Streams in 30m intervals
@@ -220,7 +639,7 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
             break;
 
         case 'begin2ndstream':
-            if (flags.broadcaster) {
+            if (flags.broadcaster || user.toLowerCase() == "the_random_encounter") {
 
                 raidTrainInit = setTimeout(raidTrainAnnounce, 480000) // Initial Raid Train Streams announcement, 8m delay
                 raidTrainInterval = setInterval(raidTrainAnnounce, 2400000); // Announce Raid Train Streams in 30m intervals
@@ -248,7 +667,7 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 
         case 'es':
         case 'endstream':
-            if (flags.broadcaster) {
+            if (flags.broadcaster || user.toLowerCase() == "the_random_encounter") {
 
 
                 clearTimeout(raidTrainInit);
@@ -276,7 +695,7 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 
         case 'ess':
         case 'endstreamsilent':
-            if (flags.broadcaster) {
+            if (flags.broadcaster || user.toLowerCase() == "the_random_encounter") {
 
 
                 clearTimeout(raidTrainInit);
@@ -362,10 +781,10 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
             break;
 
         case 'userdebug':
-            if (flags.broadcaster) {
+            if (flags.broadcaster || user.toLowerCase() == "the_random_encounter") {
                 ComfyJS.Say(`Performing user debug action. Check console logs for further information.`);
                 console.log(currentUsersList);
-            } else if (!flags.broadcaster) {
+            } else if (!flags.broadcaster || user == 'KaytoPotato' || user == "The_Random_Encounter") {
                 ComfyJS.Say(`Access denied. You are not the broadcaster of this channel. Sorry, mate.`);
                 console.log(` CMD LOG: User '${user}' attempted to access user debug list. Access denied.`);
             }
@@ -374,10 +793,10 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
             break;
 
         case 'updatelistdebug':
-            if (flags.broadcaster) {
+            if (flags.broadcaster || user.toLowerCase() == "the_random_encounter") {
                 ComfyJS.Say(`Performing updated user list debug action. Check console logs for further information.`);
                 console.log(updatedUsersList);
-            } else if (!flags.broadcaster) {
+            } else if (!flags.broadcaster || user == 'KaytoPotato' || user == "The_Random_Encounter") {
                 ComfyJS.Say(`Access denied. You are not the broadcaster of this channel. Sorry, mate.`);
                 console.log(` CMD LOG: User '${user}' attempted to access user debug list. Access denied.`);
             }
@@ -748,357 +1167,3 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 
     return;
 }
-
-ComfyJS.onJoin = (user, flags, self, extra) => {
-    var scriptRuntime = new Date().getTime();
-    var timeSinceBegin = scriptRuntime - scriptStart;
-    let runTimeMinutes = timeSinceBegin / 60000;
-    let upTime = msToTime(timeSinceBegin);
-    let runTime = `Script Runtime: ${upTime} (${timeSinceBegin}ms)`;
-    const logType = 'JOIN';
-    let logMsg;
-
-    if (user == 'stressedgrad' || user == 'academyimpossible' || user == 'randomencounterbot' || user == 'streamelements' || user == 'moobot' || user == 'streamlabs' || user == 'anothertvviewer' || user == 'dudutopaz1') {
-        console.log(`JOIN LOG: ${user} has joined channel, is on blacklist. Ignoring.`);
-    } else if (user === 'the_random_encounter' && timeSinceBegin > 100000) {
-        //ComfyJS.Say('Welcome to your castle, master.')
-        console.log(`JOIN LOG: Channel owner the_random_encounter has joined the channel. ${upTime}`);
-    } else if (timeSinceBegin > 100000) {
-        console.log(`JOIN LOG: ${user} has joined channel. ${upTime}`);
-    }
-
-    let userPOS = currentUsersList.indexOf(user);
-    let userUpdatedPOS = updatedUsersList.indexOf(user);
-
-    if (userPOS == -1) {
-        currentUsersList.push(user);
-        console.log(`JOIN LOG: New user in channel named ${user}. Added to users list.`);
-        logXmit(`New user in channel named ${user}. Added to users list.`, logType);
-    } else if (userPOS != -1) {
-        console.log(`JOIN LOG: User '${user}' joined channel, hasn't been pruned from user list. Leaving alone.`);
-        logXmit(`User '${user}' joined channel, hasn't been pruned from user list. Leaving alone.`, logType);
-    } else {
-        console.log(`JOIN LOG: Unknown error regarding new user '${user}' in channel. No action taken.`);
-        logXmit(`Unknown error regarding new user '${user}' in channel. No action taken.`, logType);
-    }
-
-    let userAdded = userDB.addUser(user);
-
-    if (userAdded) {
-        updatedUsersList.push(user);
-        console.log(`JOIN LOG: New user '${user}' has been successfully added.`);
-        logXmit(`New user '${user}' has been successfully added.`, logType);
-    } else {
-        if (userUpdatedPOS == -1) {
-            updatedUsersList.push(user);
-            userDB.lastSeen(user);
-            console.log(`JOIN LOG: User '${user}' has been updated and added to updated users list.`);
-            logXmit(`User '${user}' has been updated and added to updated users list.`, logType);
-        } else {
-            console.log(`JOIN LOG: User '${user} present on updated users list (Index: ${userUpdatedPOS}). No action taken.`);
-            logXmit(`User '${user} present on updated users list (Index: ${userUpdatedPOS}). No action taken.`, logType);
-        }
-    }
-
-    userPOS = 0;
-}
-
-ComfyJS.onSub = (user, message, subTierInfo, extra) => {
-    console.log(`LOG>> ${user} subbed at tier ${subTierInfo}.`);
-    //ComfyJS.Say(`Wow! Thank you so much subscribing at tier ${subTierInfo}, @${user}! Much appreciated, and much love!`);
-}
-
-ComfyJS.onResub = (user, message, streakMonths, cumulativeMonths, subTierInfo, extra) => {
-    console.log(`LOG>> ${user} resubbed at tier ${subTierInfo}. Streak: ${streakMonths}, Cumulative: ${cumulativeMonths}`);
-    // ComfyJS.Say(`Thank you for resubbing at tier ${subTierInfo}, @${user}! They now have a sub streak of ${streakMonths}, with ${cumulativeMonths} months total! Much appreciated, much love!`);
-}
-
-ComfyJS.onSubGift = (gifterUser, streakMonths, recipientUser, senderCount, subTierInfo, extra) => {
-    console.log(`LOG>> ${gifterUser} purchased ${senderCount} tier ${subTierInfo} gift subs for ${recipientUser}, giving them a streak of ${streakMonths}.`);
-    //ComfyJS.Say(`@${gifterUser} purchased ${senderCount} tier ${subTierInfo} gift subs for @${recipientUser}, giving them a streak of ${streakMonths}. Wow, thank you so much! Much love.`);
-}
-
-ComfyJS.onSubMysteryGift = (gifterUser, numbOfSubs, senderCount, subTierInfo, extra) => {
-    console.log(`LOG>> ${gifterUser} mystery purchased ${numbOfSubs} tier ${subTierInfo}. senderCount: ${senderCount}.`);
-    // ComfyJS.Say('A mystery gifter just gifted ' + numbOfSubs + ' subs! Thank you for your tall, dark, and mysterious gifts!');
-}
-
-ComfyJS.onGiftSubContinue = (user, sender, extra) => {
-    console.log(`LOG>> ${user} continued their sub via a gift sub from ${sender}.`);
-    // ComfyJS.Say(`Thank you for continuing your subscription, @${user}! Be sure to thank @${sender} for the gift! Much love to you both!`);
-}
-
-ComfyJS.onRaid = (user, viewers, extra) => {
-    console.log(`LOG>> ${user} raided the channel with ${viewers} in tow.`);
-    ComfyJS.Say(`Incoming raid from @${user} with ${viewers} viewers in tow! Welcome raiders! Please refresh your browsers once you are loaded in. Glad to have you! https://www.twitch.tv/the_random_encounter`);
-}
-
-ComfyJS.onHosted = (user, viewers, autohost, extra) => {
-    console.log(`LOG>> ${user} hosted the channel with ${viewers} viewers. Authost: ${autohost}.`);
-    ComfyJS.Say(`@${user} is hosting the channel with ${viewers} viewers. Thanks for the support, and glad to have you guys!`);
-}
-
-ComfyJS.onWhisper = (user, message, flags, self, extra) => {
-
-    let msgIndexer = message.indexOf(':');
-    let msgStart = message.substring(0, msgIndexer);
-    let msgContent = message.substring(msgIndexer);
-
-    if (user.toLowerCase() != 'the_random_encounter') {
-        const mailOptions = {
-            from: 'talent@random-encounter.net',
-            to: 'danvisibleman@gmail.com',
-            subject: `TWITCH BOT PM FROM '${user}'`,
-            text: message
-        };
-
-        botMailTransporter.sendMail(mailOptions, function (error, info) {
-            if (error) {
-                console.log(error);
-            } else {
-                console.log(`WHISPER LOG: User '${user}' sent a message. E-mailed successfully. (${info.response})`);
-            }
-        });
-    } else if (flags.broadcaster) {
-        let prefix = msgStart.toLowerCase();
-        if (prefix == 'debug' || prefix == 'cmd') {
-            msgContent =
-                cmdExec()
-        } else {
-
-        }
-    }
-
-
-}
-
-ComfyJS.onCheer = (user, message, bits, flags, extra) => {
-    console.log(`LOG>> ${user} cheered a total of ${bits} bits. Message: ${message}`);
-    ComfyJS.Say(`@${user} just cheered, sending a total of ${bits} of the juiciest bits out! Wow! Thank you very much, and much love!`);
-}
-
-ComfyJS.onPart = (user, self, extra) => {
-    var scriptRuntime = new Date().getTime();
-    var timeSinceBegin = scriptRuntime - scriptStart;
-    let upTime = msToTime(timeSinceBegin);
-    let runTime = `Script Runtime: ${upTime} (${timeSinceBegin}ms)`;
-    const logType = 'PART';
-    let logMsg;
-
-    let userPOS = currentUsersList.indexOf(user);
-    let userUpdatedPOS = updatedUsersList.indexOf(user);
-
-    if (userPOS == -1) {
-        logMsg = `User '${user}' left channel, but was not on users list beforehand. Leaving alone. ${runTime}`;
-        console.log(`PART LOG: ` + logMsg);
-        logXmit(logMsg, logType);
-    } else if (userPOS != -1) {
-        currentUsersList.splice(userPOS, 1);
-        logMsg = `User '${user}' has left channel, pruned username from active users list. ${runTime}`;
-        console.log(`PART LOG: ` + logMsg);
-        logXmit(logMsg, logType);
-    } else {
-        logMsg = `Unknown exception regarding user '${user}' leaving channel. UserPOS variable not -1 or above 1. Leaving alone. ${runTime}`;
-        console.log(`PART LOG: ` + logMsg);
-        logXmit(logMsg, logType);
-    }
-
-    let userAdded = userDB.addUser(user);
-
-    if (userAdded) {
-        updatedUsersList.push(user);
-        logMsg = `New user '${user}' has been successfully added.`;
-        console.log(`PART LOG: ` + logMsg);
-        logXmit(logMsg, logType);
-    } else {
-        if (userUpdatedPOS == -1) {
-            updatedUsersList.push(user);
-            userDB.lastSeen(user);
-            logMsg = `User '${user}' has been updated and added to updated users list.`;
-            console.log(`PART LOG: ` + logMsg);
-            logXmit(logMsg, logType);
-        }
-    }
-
-    userPOS = 0;
-}
-
-//
-// START OF CUSTOM FUNCTION DEFINITIONS
-//
-
-function kandiKidRaidAlert() {
-
-    // Prompts chat about upcoming raid to the_kandi_kid_assassin's channel
-    // Currently deprecated, Sunday streams with Nick are on pause
-
-    var timeRightNow = new Date();
-    var millsTill1145pm = new Date(timeRightNow.getFullYear(), timeRightNow.getMonth(), timeRightNow.getDate(), 23, 45, 0, 0) - timeRightNow;
-
-    if (millsTill1145pm < 0) {
-        millsTill1145pm += 396000000; // it's after 11:45pm, try 11:45pm tomorrow.
-    }
-
-    setTimeout(function () { ComfyJS.Say(`It's 11:45pm. In 15 minutes we'll be raiding over to @the_kandi_kid_assassin 's channel. Stick around and hold tight!`) }, millsTill1145pm);
-
-}
-
-function diceRoll(numDice, diceSize) {
-
-    // Generates a dice roll given number of dice and size of dice
-
-    let diceResult = 0;
-    let perDieRoll = [];
-
-    for (var i = 1; i <= numDice; i++) {
-
-        let diceRoll = Math.floor(Math.random() * diceSize) + 1;
-
-        perDieRoll.push(diceRoll);
-        diceResult = diceResult + diceRoll;
-    }
-
-    return [diceResult, perDieRoll];
-}
-
-function randInt(floor, ceiling) {
-
-    // Generates a random integer between the floor & ceiling provided
-
-    return Math.floor(Math.random() * (ceiling - floor + 1) + floor);
-
-}
-
-function logXmit(data, logType, user) {
-
-    // Transmits logging data to inline log table via Websocket server
-    // Designed for viewing in OBS Studio
-
-    const time = createTimeStamp();
-
-    let logData = {
-        timestamp: time,
-        type: 'LOG',
-        sender: 'CONSOLE',
-        msg: data
-    }
-
-    if (typeof user !== "undefined") { logData.sender = user; }
-    if (typeof logType !== "undefined") { logData.type = logType; }
-
-    wss.once('connection', wsc => {
-        wsc.once('message', message => {
-            console.log(`Received message => ${message}`);
-        });
-        wsc.send(JSON.stringify(logData));
-        //wss.removeListener('connection', wsc);
-
-    });
-
-    return true;
-}
-
-function createTimeStamp() {
-
-    // Creates the timestamp property used in logXmit function
-    // Final Format: MM/DD/YYYY - HH:MM:SS AM/PM
-
-    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    const d = new Date();
-    let AMPM = 'AM';
-    let dayOfMonth = d.getDate();
-    let monthOfYear = d.getMonth() + 1;
-    let dayHours = d.getHours();
-    let dayMinutes = d.getMinutes();
-    let daySeconds = d.getSeconds();
-    let fullYear = d.getFullYear();
-    let dayOfWeek = days[d.getDay()];
-
-    if (dayHours > 12) {
-        dayHours = dayHours - 12;
-        AMPM = 'PM';
-    }
-    if (dayHours < 10) { dayHours = '0' + dayHours; }
-    if (dayMinutes < 10) { dayMinutes = '0' + dayMinutes; }
-    if (daySeconds < 10) { daySeconds = '0' + daySeconds; }
-
-    let timestamp = monthOfYear + '/' + dayOfMonth + '/' + fullYear + " - " + dayHours + ':' + dayMinutes + ':' + daySeconds + ` ${AMPM}`;
-
-    return timestamp;
-}
-
-function padDigits(num) { return num.toString().padStart(2, '0'); } // Just pads a digit with a leading zero
-
-function msToTime(milliseconds) {
-
-    // Converts time given in milliseconds to the format 'XXh XXm XXs'
-    let seconds = Math.floor(milliseconds / 1000);
-    let minutes = Math.floor(seconds / 60);
-    let hours = Math.floor(minutes / 60);
-    let AMPM = 'AM';
-
-    seconds = seconds % 60;
-    minutes = minutes % 60;
-
-    hours = hours % 24;
-
-    return `${padDigits(hours)}h ${padDigits(minutes)}m ${padDigits(seconds,)}s`;
-}
-
-function generateTip() {
-
-    // Picks a random tip from the list and broadcasts it to chat
-    // Function is ran on a timer interval, intialized at top of file
-
-    let tipList = [
-        `Did you know that the_random_encounter is creating me from scratch? Pretty impressive really, even if he does say mean things about me.`,
-        `Did you know you can send the_random_encounter an e-mail by sending me a whisper directly? I will forward anything you say to me in private to his e-mail. Nifty, huh?`,
-        `Did you know that the_random_encounter has lots of cheeky ways to spend your channel points? Make yourself known and punish his hubris today!`,
-        `Did you know that the_random_encounter is adding new features to me rather frequently? Gambling games coming soon! If you have any ideas for commands or features, whisper them to me and I will pass them on.`,
-        `Did you know that the_kandi_kid_assassin is one of the_random_encounter's best friends, and a glorious DJ as well? If you aren't following him, you should! https://www.twitch.tv/the_kandi_kid_assassin`,
-        `Interested in supporting the stream directly? Tips are greatly appreciated, and go 100% towards new tracks, new gear, and otherwise improving your streaming experience! https://streamelements.com/the_random_encounter/tip`,
-        `Did you know that subscribers are automatically entered into a monthly raffle to win a $25 Twitch eGift Card on the 1st of every month? All subscribers active on the 1st are entered and the winner is drawn on the first livestream of the month!`,
-        `Another way you can support the stream directly is by taking a look at the_random_encounter's Amazon wish list! All items are for streaming or studio work! https://www.amazon.com/hz/wishlist/ls/2QA8UOEUQVI00?ref_=wl_share`,
-        `Did you know you can create your own commands now? Try it out with the !addcmd command today, and make your mark on the channel forever!`,
-        `Have you joined the Discord server yet? Its a great place to keep track of announcements, giveaways, promote yourself, get DJing/production help, and otherwise be a part of our growing circle. Check it out! https://discord.gg/2tmbtukkEF`,
-        `Weekly streams, Tuesdays and Wednesdays! Catch Random Encounter closing out Thrust Tuesdays at 1am CST/6am GMT (yes, it's technically a Wednesday), and again Wednesday evening for The Throwdown at 7pm CST/12am GMT! We'd love to see ya there!`,
-        `the_random_encounter is a resident DJ with spinspinsuper! You can catch him doing sets over at his channel from time to time, and if you haven't followed spinspinsuper already, you are not up with the current meta at all! https://www.twitch.tv/spinspinsuper/`,
-        `Everyone gets their own adjective assigned to them when they first join the channel, did you know? It's random, of course, but some say that the adjective you get is chosen by the stars... Learn yours with the !adjective command today!`
-    ]
-    let listSize = tipList.length;
-    let arrayLoc = Math.floor(Math.random() * listSize);
-
-    let chosenTip = tipList[arrayLoc];
-
-    ComfyJS.Say(`${chosenTip}`);
-    return;
-}
-
-function pushCmdMemObj(cmd, user, target) {
-
-    const arrayLen = cmdMemArray.length();
-    const arrayLoc = arrayLen - 1;
-
-    const cmdMem = {
-        cmd: `${cmd}`,
-        user: `${user}`
-    };
-
-    const cmdMem2 = {
-        recipient: `${target}`,
-        arrayLoc: `${arrayLoc}`,
-        memory: `${cmdMem}`
-    }
-
-    if (arrayLen > 0) {
-        cmdMemArray[arrayLen] = cmdMem2;
-        return true;
-    } else if (arrayLen == 0) {
-        cmdMemArray[0] = cmdMem2;
-        return true;
-    } else {
-        console.log(` FUNC ERROR: pushCmdMemObj FAILED - ${console.error}`)
-        return false;
-    }
-}
-
