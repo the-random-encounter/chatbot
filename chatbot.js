@@ -1166,7 +1166,7 @@ function cmdExec(user, command, message, flags, extra) {
                         ComfyJS.Say(`Changing the lights to ${cmd}!`);
                         console.log(` CMD LOG: User '${user}' changed the lighting color to '${cmd}'. Response: ${resp.body}`);
                     })
-                .catch((err) => {
+                .catch((err) =>  {
                     ComfyJS.Say(`Something went wrong, ${user}... Not sure what. Try again?`);
                     console.error(` CMD LOG: Error occurred when user '${user} issued command '${cmd}'. Error: ${err}`);
                 })
@@ -1176,11 +1176,11 @@ function cmdExec(user, command, message, flags, extra) {
 
             FPPpayload = 'http://192.168.1.123/api/playlist/red/start';
             needle('get', FPPpayload)
-                .then((resp) => {
+                .then((resp) =>  {
                     ComfyJS.Say(`Changing the lights to ${cmd}!`);
                     console.log(` CMD LOG: User '${user}' changed the lighting color to '${cmd}'. Response: ${resp.body}`);
                 })
-                .catch((err) => {
+                .catch((err) =>  {
                     ComfyJS.Say(`Something went wrong, ${user}... Not sure what. Try again?`);
                     console.error(` CMD LOG: Error occurred when user '${user} issued command '${cmd}'. Error: ${err}`);
                 })
@@ -1190,11 +1190,11 @@ function cmdExec(user, command, message, flags, extra) {
 
             FPPpayload = 'http://192.168.1.123/api/playlist/green/start';
             needle('get', FPPpayload)
-                .then((resp) => {
+                .then((resp) =>  {
                     ComfyJS.Say(`Changing the lights to ${cmd}!`);
                     console.log(` CMD LOG: User '${user}' changed the lighting color to '${cmd}'. Response: ${resp.body}`);
                 })
-                .catch((err) => {
+                .catch((err) =>  {
                     ComfyJS.Say(`Something went wrong, ${user}... Not sure what. Try again?`);
                     console.error(` CMD LOG: Error occurred when user '${user} issued command '${cmd}'. Error: ${err}`);
                 })
@@ -1204,11 +1204,11 @@ function cmdExec(user, command, message, flags, extra) {
 
             FPPpayload = 'http://192.168.1.123/api/playlist/yellow/start';
             needle('get', FPPpayload)
-                .then((resp) => {
+                .then((resp) =>  {
                     ComfyJS.Say(`Changing the lights to ${cmd}!`);
                     console.log(` CMD LOG: User '${user}' changed the lighting color to '${cmd}'. Response: ${resp.body}`);
                 })
-                .catch((err) => {
+                .catch((err) =>  {
                     ComfyJS.Say(`Something went wrong, ${user}... Not sure what. Try again?`);
                     console.error(` CMD LOG: Error occurred when user '${user} issued command '${cmd}'. Error: ${err}`);
                 })
@@ -1218,11 +1218,11 @@ function cmdExec(user, command, message, flags, extra) {
 
             FPPpayload = 'http://192.168.1.123/api/playlist/white/start';
             needle('get', FPPpayload)
-                .then((resp) => {
+                .then((resp) =>  {
                     ComfyJS.Say(`Changing the lights to ${cmd}!`);
                     console.log(` CMD LOG: User '${user}' changed the lighting color to '${cmd}'. Response: ${resp.body}`);
                 })
-                .catch((err) => {
+                .catch((err) =>  {
                     ComfyJS.Say(`Something went wrong, ${user}... Not sure what. Try again?`);
                     console.error(` CMD LOG: Error occurred when user '${user} issued command '${cmd}'. Error: ${err}`);
                 })
@@ -1232,11 +1232,11 @@ function cmdExec(user, command, message, flags, extra) {
 
             FPPpayload = 'http://192.168.1.123/api/playlist/cyan/start';
             needle('get', FPPpayload)
-                .then((resp) => {
+                .then((resp) =>  {
                     ComfyJS.Say(`Changing the lights to ${cmd}!`);
                     console.log(` CMD LOG: User '${user}' changed the lighting color to '${cmd}'. Response: ${resp.body}`);
                 })
-                .catch((err) => {
+                .catch((err) =>  {
                     ComfyJS.Say(`Something went wrong, ${user}... Not sure what. Try again?`);
                     console.error(` CMD LOG: Error occurred when user '${user} issued command '${cmd}'. Error: ${err}`);
                 })
@@ -1250,7 +1250,7 @@ function cmdExec(user, command, message, flags, extra) {
                     ComfyJS.Say(`Changing the lights to ${cmd}!`);
                     console.log(` CMD LOG: User '${user}' changed the lighting color to '${cmd}'. Response: ${resp.body}`);
                 })
-                .catch((err) => {
+                .catch((err) =>  {
                     ComfyJS.Say(`Something went wrong, ${user}... Not sure what. Try again?`);
                     console.error(` CMD LOG: Error occurred when user '${user} issued command '${cmd}'. Error: ${err}`);
                 })
@@ -1260,11 +1260,11 @@ function cmdExec(user, command, message, flags, extra) {
 
             FPPpayload = 'http://192.168.1.123/api/playlist/off/start';
             needle('get', FPPpayload)
-                .then((resp) => {
+                .then((resp) =>  {
                     ComfyJS.Say(`Changing the lights to ${cmd}!`);
                     console.log(` CMD LOG: User '${user}' changed the lighting color to '${cmd}'. Response: ${resp.body}`);
                 })
-                .catch((err) => {
+                .catch((err) =>  {
                     ComfyJS.Say(`Something went wrong, ${user}... Not sure what. Try again?`);
                     console.error(` CMD LOG: Error occurred when user '${user} issued command '${cmd}'. Error: ${err}`);
                 })
