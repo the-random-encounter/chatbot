@@ -1,9 +1,0 @@
-{
-  "user": "testuser",
-  "banData": {
-    "dateBanned": "2022-04-30",
-    "banActive": false,
-    "banLifted": "2022-05-01",
-    "timedBanned": 5
-  }
-}
