@@ -1,733 +1,699 @@
 // RANDOM ENCOUNTER TWITCH CHAT BOT
-// SQL FUNCTIONS FILE
+// SQL FUNCTIONS MODULE
 // Database: userinfodb
 // Tables: userinfo, commands
-// v0.1.5 - 04/26/2022
+// v0.3.1 - 05/13/2022
 // by The Random Encounter
+// Refactor by Spinboi
 // https://github.com/the-random-encounter/randomencounterbot.git
 // https://www.twitch.tv/the_random_encounter
 // https://www.facebook.com/random.encounter.dj
 // E-Mail: talent@random-encounter.net
 // Secondary: contact@random-encounter.net
 
-// MODULE EXPORT DEFINITIONS
-module.exports.connect = connectSQL;
-module.exports.disconnect = disconnectSQL;
-module.exports.genAdj = generateRandomAdjective;
-module.exports.getDate = getCurrentDate;
-module.exports.addUser = databaseAddUser;
-module.exports.doesExist = databaseCheckExists;
-module.exports.lastSeen = databaseUpdateLastSeen;
-module.exports.getAdj = databaseGetAdjective;
-module.exports.displayTokens = databaseDisplayTokens;
-module.exports.updateTokens = databaseUpdateTokens;
-module.exports.getTokens = databaseGetTokens;
-module.exports.updateUser = databaseUpdateUser;
-module.exports.incChats = databaseIncrementChatCounter;
-module.exports.addCmd = databaseAddCommand;
-module.exports.getCmd = databaseGetCommand;
-module.exports.remCmd = databaseRemoveCommand;
 
-// CONST requirement declarations
-const mysql = require('mysql2');
+
+// CONST library requirement declarations
+const asyncSQL = require('mysql2-async').default;
 const ComfyJS = require('comfy.js');
-const { mod } = require('tmi.js/lib/commands');
-const { toNumber } = require('tmi.js/lib/utils');
 
-const connectDB = mysql.createConnection({
-    host: process.env.SQL_HOSTNAME,
-    user: process.env.SQL_USERNAME,
-    password: process.env.SQL_PASSWORD,
-    database: process.env.SQL_DATABASE
+// Create async SQL database object
+const execDB = new asyncSQL({
+	host: process.env.SQL_HOSTNAME,
+	user: process.env.SQL_USERNAME,
+	password: process.env.SQL_PASSWORD,
+	database: process.env.SQL_DATABASE,
+	skiptzfix: true
 });
 
-// Connect to SQL Server
-function connectSQL() {
-    connectDB.connect(function (err) {
-        if (err) {
-            return console.error('error: ' + err.message);
-        }
-
-        console.log('Connected to MySQL server.');
-    });
-
-}
-
-// Disconnect from SQL Server
-function disconnectSQL() {
-
-    connectDB.end(function (err) {
-        if (err) {
-            return console.log('error: ' + err.message);
-        }
-
-        console.log('Close the database connection.');
-    })
-
-}
-
-// Generate a random adjective from array and return
-function generateRandomAdjective() {
-
-    let adjList = [
-        "adorable",
-        "adventurous",
-        "aggressive",
-        "agreeable",
-        "alert",
-        "alive",
-        "amused",
-        "angry",
-        "annoyed",
-        "annoying",
-        "anxious",
-        "arrogant",
-        "ashamed",
-        "attractive",
-        "average",
-        "awful",
-        "bad",
-        "beautiful",
-        "better",
-        "bewildered",
-        "black",
-        "bloody",
-        "blue",
-        "blue-eyed",
-        "blushing",
-        "bored",
-        "brainy",
-        "brave",
-        "breakable",
-        "bright",
-        "busy",
-        "calm",
-        "careful",
-        "cautious",
-        "charming",
-        "cheerful",
-        "clean",
-        "clear",
-        "clever",
-        "cloudy",
-        "clumsy",
-        "colorful",
-        "combative",
-        "comfortable",
-        "concerned",
-        "condemned",
-        "confused",
-        "cooperative",
-        "courageous",
-        "crazy",
-        "creepy",
-        "crowded",
-        "cruel",
-        "curious",
-        "cute",
-        "dangerous",
-        "dark",
-        "dead",
-        "defeated",
-        "defiant",
-        "delightful",
-        "depressed",
-        "determined",
-        "different",
-        "difficult",
-        "disgusted",
-        "distinct",
-        "disturbed",
-        "dizzy",
-        "doubtful",
-        "drab",
-        "dull",
-        "eager",
-        "easy",
-        "elated",
-        "elegant",
-        "embarrassed",
-        "enchanting",
-        "encouraging",
-        "energetic",
-        "enthusiastic",
-        "envious",
-        "evil",
-        "excited",
-        "expensive",
-        "exuberant",
-        "fair",
-        "faithful",
-        "famous",
-        "fancy",
-        "fantastic",
-        "fierce",
-        "filthy",
-        "fine",
-        "foolish",
-        "fragile",
-        "frail",
-        "frantic",
-        "friendly",
-        "frightened",
-        "funny",
-        "gentle",
-        "gifted",
-        "glamorous",
-        "gleaming",
-        "glorious",
-        "good",
-        "gorgeous",
-        "graceful",
-        "grieving",
-        "grotesque",
-        "grumpy",
-        "handsome",
-        "happy",
-        "healthy",
-        "helpful",
-        "helpless",
-        "hilarious",
-        "homeless",
-        "homely",
-        "horrible",
-        "hungry",
-        "hurt",
-        "ill",
-        "important",
-        "impossible",
-        "inexpensive",
-        "innocent",
-        "inquisitive",
-        "itchy",
-        "jealous",
-        "jittery",
-        "jolly",
-        "joyous",
-        "kind",
-        "lazy",
-        "light",
-        "lively",
-        "lonely",
-        "long",
-        "lovely",
-        "lucky",
-        "magnificent",
-        "misty",
-        "modern",
-        "motionless",
-        "muddy",
-        "mushy",
-        "mysterious",
-        "nasty",
-        "naughty",
-        "nervous",
-        "nice",
-        "nutty",
-        "obedient",
-        "obnoxious",
-        "odd",
-        "old-fashioned",
-        "open",
-        "outrageous",
-        "outstanding",
-        "panicky",
-        "perfect",
-        "plain",
-        "pleasant",
-        "poised",
-        "poor",
-        "powerful",
-        "precious",
-        "prickly",
-        "proud",
-        "putrid",
-        "puzzled",
-        "quaint",
-        "real",
-        "relieved",
-        "repulsive",
-        "rich",
-        "scary",
-        "selfish",
-        "shiny",
-        "shy",
-        "silly",
-        "sleepy",
-        "smiling",
-        "smoggy",
-        "sore",
-        "sparkling",
-        "splendid",
-        "spotless",
-        "stormy",
-        "strange",
-        "stupid",
-        "successful",
-        "super",
-        "talented",
-        "tame",
-        "tasty",
-        "tender",
-        "tense",
-        "terrible",
-        "thankful",
-        "thoughtful",
-        "thoughtless",
-        "tired",
-        "tough",
-        "troubled",
-        "ugliest",
-        "ugly",
-        "uninterested",
-        "unsightly",
-        "unusual",
-        "upset",
-        "uptight",
-        "vast",
-        "victorious",
-        "vivacious",
-        "wandering",
-        "weary",
-        "wicked",
-        "wide-eyed",
-        "wild",
-        "witty",
-        "worried",
-        "worrisome",
-        "wrong",
-        "zany",
-        "zealous"
-    ];
-    let listSize = adjList.length;
-    let arrayLoc = Math.floor(Math.random() * listSize);
-
-    let chosenAdj = adjList[arrayLoc];
-
-    return chosenAdj;
-}
-
-// Create date in YYYY-MM-DD format for storage in SQL database
-function getCurrentDate() {
-
-    let today = new Date();
-    let dd = String(today.getDate()).padStart(2, '0');
-    let mm = String(today.getMonth() + 1).padStart(2, '0');
-    let yyyy = today.getFullYear();
-
-    today = yyyy + '-' + mm + '-' + dd;
-
-    return today;
-}
-
-// Check database for existing user and create entry if none exists
-function databaseAddUser(username) {
-
-    const insertQuery = 'INSERT INTO userinfo (user_name,first_seen,last_seen,random_adjective) VALUES (?,?,?,?)';
-    const checkQuery = 'SELECT * FROM userinfo WHERE user_name = (?)';
-    const idQuery = 'SELECT user_id FROM userinfo WHERE user_name = (?)';
-
-    const randomAdjective = generateRandomAdjective();
-    const todaysDate = getCurrentDate();
-
-    const insertData = [username, todaysDate, todaysDate, randomAdjective];
-    const checkData = [username];
-
-    connectDB.query(checkQuery, checkData, (err, row) => {                                                          // Query userinfo table for user's existence
-        if (err) {
-            return console.error('FUNC databaseAddUser ERROR RESPONSE: ' + err.message);
-        } else {
-            if (row && row.length) {
-                connectDB.query(idQuery, checkData, (err, results) => {                                         // If exists, query table for user's user_id value
-                    if (err) {
-                        return console.error('FUNC databaseAddUser ERROR RESPONSE: ' + err.message);
-                    } else {
-                        console.log(` SQL LOG: User '${username}' already exists. User ID: ${results[0].user_id}`);
-                        return false;
-                    }
-                });
-            } else {
-                console.log(` SQL LOG: User '${username}' does not exist. Attempting to add...`);
-                connectDB.query(insertQuery, insertData, (err, results) => {                                        // If does not exist, create new user entry
-                    if (err) {
-                        return console.error('FUNC databaseAddRow ERROR RESPONSE: ' + err.message);
-                    } else {
-                        console.log(' SQL LOG: New User Entry ID: ' + results.insertId + `. Username: ${username},added on ${todaysDate}`);
-                        return true;
-                    }
-                });
-            }
-        }
-    });
-}
-
-// Check database for existing user only
-function databaseCheckExists(username) {
-
-    let checkQuery = 'SELECT * FROM userinfo WHERE user_name = (?)';
-    let checkData = [username];
-
-    connectDB.query(checkQuery, checkData, (err, row) => {                                          // Query userinfo table for user's existence
-        if (err) {
-            return console.error('FUNC databaseCheckExists ERROR RESPONSE: ' + err.message);
-        } else {
-            if (row && row.length) {
-                connectDB.query(idQuery, checkData, (err, results) => {                                     // ????                                  
-                    if (err) {
-                        return console.error('FUNC databaseCheckExists ERROR RESPONSE: ' + err.message);
-                    } else {
-                        console.log(` SQL LOG: User '${username}' already exists. User ID: ${results[0].user_id}`);
-                        return true;
-                    }
-                });
-            } else {
-                console.log(` SQL LOG: User '${username}' does not exist.`);
-                return false;
-            }
-        }
-    });
-}
-
-// Get stored adjective for given user
-function databaseGetAdjective(username) {
-
-    const adjQuery = 'SELECT random_adjective FROM userinfo WHERE user_name = (?)';
-    const adjData = [username];
-
-    let adjective = '';
-
-    connectDB.query(adjQuery, adjData, (err, results, fie) => {                                  // Query userinfo table for user's random adjective
-        if (err) {
-            return console.error('FUNC databaseGetAdjective ERROR RESPONSE: ' + err.message);
-        } else {
-            adjective = JSON.stringify(results[0].random_adjective);
-            console.log(`SQL DEBUG: dbGetAdj>> var adjective = ${adjective}`);
-        }
-
-        ComfyJS.Say(`@${username},your RANDOM ADJECTIVE is ${adjective}! And you're stuck with it for good!`);
-        return adjective;
-    });
-}
-
-// Get and broadcast casino tokens for given user
-function databaseDisplayTokens(username) {
-
-    const tokenQuery = 'SELECT casino_tokens FROM userinfo WHERE user_name = (?)';
-    const tokenData = [username];
-
-    let returnAmt = 0;
-
-    connectDB.query(tokenQuery, tokenData, (err, results) => {                                  // Query userinfo table for user's token count
-        if (err) {
-            return console.error('FUNC databaseGetTokens ERROR RESPONSE: ' + err.message);
-        } else {
-            returnAmt = JSON.stringify(results[0].casino_tokens);
-            ComfyJS.Say(`@${username},you currently have ${returnAmt} casino tokens remaining.`);
-            console.log(`Checked casino token amount for user ${username},returned ${returnAmt}`);
-        }
-    });
-
-    return; //returnAmt;
-}
-
-// Get casino tokens for given user
-function databaseGetTokens(username) {
-
-    const tokenQuery = 'SELECT casino_tokens FROM userinfo WHERE user_name = (?)';
-    const tokenData = [username];
-
-    let returnAmt = 0;
-
-    connectDB.query(tokenQuery, tokenData, (err, results, fields) => {                              // Query userinfo table for user's token count
-        if (err) {
-            return console.error('FUNC databaseGetTokens ERROR RESPONSE: ' + err.message);
-        } else {
-            returnAmt = results[0].casino_tokens;
-            console.log(`SQL DEBUG: dbgetTokens>> var returnAmt = ${returnAmt}`);
-            ComfyJS.Say(`You have ${results[0].casino_tokens} tokens available,${username}.`);
-            return returnAmt;
-        }
-        //console.log(`SQL DEBUG: dbGetTokens>> results = ${results} - fields = ${fields}`);
-        //console.log(`Checked casino token amount for user ${username},returned ${returnAmt}`);
-    });
-
-    //console.log(returnAmt);
-    //return returnAmt;
-}
-
-// Update casino tokens for given user based on previous amount
-function databaseUpdateTokens(username, newTokens) {
-
-    const tokenQuery = 'SELECT casino_tokens FROM userinfo WHERE user_name = (?)';
-    const updateQuery = 'UPDATE userinfo SET casino_tokens = ? WHERE user_name = ?';
-
-    connectDB.query(tokenQuery, username, (err, result) => {                                            // Query userinfo table for user's current casino token count
-        if (err) {
-            return console.error('FUNC databaseUpdateTokens ERROR RESPOSNE ' + err.message);
-        } else {
-            let originalTokens = result[0].casino_tokens;
-            let newAmt = originalTokens + newTokens;
-            const updateData = [newAmt, username];
-
-            connectDB.query(updateQuery, updateData, (err, results) => {                                        // Combine old token amount with loss or payout & update table
-                if (err) {
-                    return console.error('FUNC databaseUpdateTokens ERROR RESPONSE: ' + err.message);
-                } else {
-                    console.log(`FUNC databaseUpdateTokens UPDATED ${username} TOKENS TO ${results[0].casino_tokens}`);
-                    return;
-                }
-            });
-        }
-    });
-}
-
-// Update last seen date entry for given user
-function databaseUpdateLastSeen(username) {
-
-    const updateQuery = 'UPDATE userinfo SET last_seen = ? WHERE user_name = ?';
-    const currDate = getCurrentDate();
-
-    const updateData = [currDate, username];
-
-    connectDB.query(updateQuery, updateData, (error, results, fields) => {                              // Update user's last_seen date with today's date
-        if (error) {
-            return console.error('FUNC databaseUpdateLastSeen ERROR RESPONSE: ' + error.message);
-        } else {
-            console.log(` SQL LOG: User '${username}' has been set to last seen today (${currDate}).`);
-            return true;
-        }
-    });
-}
-
-// Full user creation/data update routine -- STILL TESTING, NOT IMPLEMENTED
-function databaseUpdateUser(username, streamFlag, secondStreamFlag) {
-
-    const newUser = 'INSERT INTO userinfo (user_name,first_seen,last_seen,random_adjective) VALUES (?,?,?,?)';
-    const checkUser = 'SELECT * FROM userinfo WHERE user_name = (?)';
-    const updateStreams = 'UPDATE userinfo SET streams_attended = ? WHERE user_name = ?';
-    const updateLastSeen = 'UPDATE userinfo SET last_seen = ? WHERE user_name = ?';
-    const getStreams = 'SELECT streams_attended FROM userinfo WHERE user_name = ?';
-    const getLastSeen = 'SELECT last_seen FROM userinfo WHERE user_name = ?';
-    const currDate = getCurrentDate();
-    const randomAdjective = generateRandomAdjective();
-    const newUserData = [username, todaysDate, todaysDate, randomAdjective];
-    let newStreamsCount = 0;
-
-    connectDB.query(checkUser, username, (error, row) => {                                                          // Query userinfo table for existence of user
-        if (error) {
-            return console.error('FUNC databaseUpdateUser CHECK USER EXISTS ERROR RESPONSE: ' + error.message);
-        } else {
-            if (row && row.length) {
-                console.log(`FUNC databaseUpdateUser RESPONSE: Found user '${username}'. Proceeding with update...`);
-                connectDB.query(getLastSeen, username, (error, results1) => {                                               // If user exists, query table for date user was last seen in chat
-                    if (error) {
-                        return console.error('FUNC databaseUpdateUser GET last_seen ERROR RESPONSE: ' + error.message);
-                    } else {
-                        let userLastSeen = results1[0].last_seen;
-                        if (userLastSeen == currDate && secondStreamFlag == false)
-                            return console.log(`SQL LOG: User '${username}' last seen today (${currDate}). No need to update last_seen or streams_attended.`);
-                        else {
-                            connectDB.query(getStreams, username, (error, res) => {                                            // If user was not seen today or most recent stream, query table for user's streams_attended count
-                                if (error) {
-                                    return console.error('FUNC databaseUpdateUser GET streams_attended ERROR RESPONSE: ' + error.message);
-                                } else {
-                                    newStreamsCount = res[0].streams_attended + 1;
-                                    let updateData = [newStreamsCount, username];
-
-                                    if (streamFlag == true) {
-                                        connectDB.query(updateStreams, updateData, (error) => {                                    // Increment streams_attended counter and update table row with new result
-                                            if (error) {
-                                                return console.error('FUNC databaseUpdateUser UPDATE streams_attended ERROR RESPONSE: ' + error.message);
-                                            } else {
-                                                console.log(`SQL LOG: User '${username} not seen today (${currDate}). Updated streams_attended (new value: ${newStreamsCount}).`);
-                                            }
-                                        });
-                                    }
-                                }
-                            });
-                            if (userLastSeen == currDate) {                                                                         // If user was last seen today, abort modification
-                                return console.log(`SQL LOG: User '${username}' has already has their last_seen field updated for today. No need to modify.`);
-                            }
-
-                            if (streamFlag == true) {
-                                let updateData = [currDate, username];
-                                connectDB.query(updateLastSeen, updateData, (error) => {                                                // If stream flag is active, update last seen date for user
-                                    if (error) {
-                                        return console.error('FUNC databaseUpdateUser UPDATE last_seen ERROR RESPONSE: ' + error.message);
-                                    } else {
-                                        console.log(`SQL LOG: User '${username} updated last_seen to current date (${currDate}).`);
-                                    }
-                                });
-                            }
-                            else {                                                                                                         // Abort modification if no stream is active
-                                return console.log(`SQL LOG: User '${username} is present,but no stream is active. No update to last_seen performed.`);
-                            }
-                        }
-                    }
-                });
-            } else {
-                console.log(`FUNC databaseUpdateUser RESPONSE: No result for user '${username}'. Generating new user...`);
-                connectDB.query(newUser, newUserData, (err, results) => {                                                               // If query for user existence returns false, create new user entry
-                    if (err) {
-                        return console.error('FUNC databaseUpdateUser ADD NEW USER ERROR RESPONSE: ' + err.message);
-                    } else {
-                        console.log('SQL LOG: New User Entry ID: ' + results.insertId + `. Username: ${username},added on ${todaysDate}`);
-                        entryAdded = true;
-                    }
-                });
-            }
-        }
-    });
-
-    return;
-}
-
-// Update chat counter for given user
-function databaseIncrementChatCounter(username) {
-
-    const getCountQuery = 'SELECT msgs_sent FROM userinfo WHERE user_name = ?';
-    const updateCountQuery = 'UPDATE userinfo SET msgs_sent = ? WHERE user_name = ?';
-    const checkQuery = 'SELECT * FROM userinfo WHERE user_name = (?)';
-
-    let startCount;
-    let newCount;
-
-    const getCountData = [username];
-    const checkData = [username];
-
-    connectDB.query(checkQuery, checkData, (err, row) => {                                                          // Query userinfo table for user's existence
-        if (err) {
-            return console.error('FUNC databaseIncrementChatCounter ERROR RESPONSE: ' + err.message);
-        } else {
-            if (row && row.length) {
-                connectDB.query(getCountQuery, getCountData, (err, results) => {                                      // If user exists, query userinfo table for the user's current chat counter
-                    if (err) {
-                        return console.error('FUNC databaseIncrementChatCounter ERROR RESPONSE: ' + err.message);
-                    } else {
-                        startCount = results[0].msgs_sent;
-                        newCount = startCount + 1;
-
-                        const updateCountData = [newCount, username];
-
-                        connectDB.query(updateCountQuery, updateCountData, (err) => {                                   // Increment counter and update row with new chat counter
-                            if (err) {
-                                return console.error('FUNC databaseIncrementChatCounter ERROR RESPONSE: ' + err.message);
-                            } else {
-                                console.log(`SQL LOG: Set user '${username}' chat message counter to ${newCount} successfully.`);
-                                return newCount;
-                            }
-                        });
-                    }
-                });
-            } else {
-                return;
-            }
-        }
-    });
-}
-
-// Create new custom command from chat
-function databaseAddCommand(cmd, syntax, creator, adminLvl) {
-
-    const cmdQuery = `INSERT INTO commands (command,syntax, creator, create_date, modlvl) VALUES (?,?,?,?,?)`;
-    const checkQuery = 'SELECT * FROM commands WHERE command = ?';
-    const todaysDate = getCurrentDate();
-    const cmdData = [cmd, syntax, creator, todaysDate, adminLvl];
-
-    connectDB.query(checkQuery, cmd, (err, result) => {                                                                 // Query commands table for existence of new command already
-        if (err) {
-            return console.error('FUNC databaseAddCommand ERROR RESPONSE: ' + err.message);
-        } else {
-            if (result && result.length) {                                                                              // Deny creation if command already exists.
-                console.log(` SQL LOG: Attempt to add command '${cmd}' failed, already exists.`);
-                ComfyJS.Say(`Add Command request failed! Command '${cmd}' already exists!`);
-                return;
-            }
-            else {
-                connectDB.query(cmdQuery, cmdData, (err, results) => {                                                  // Create new command entry
-                    if (err) {
-                        return console.error('FUNC databaseAddCommand ERROR RESPOSNE: ' + err.message);
-                    } else {
-                        console.log(` SQL LOG: New commanded added to database: ID: ${results.insertId} - CREATOR: ${creator} - CMD: ${cmd} - SYNTAX: ${syntax}`);
-                        ComfyJS.Say(`Success! Command '${cmd}' added! Try it out!`);
-                        return;
-                    }
-                });
-            }
-        }
-    });
-}
-
-// Execute custom command from chat
-function databaseGetCommand(cmd, user) {
-
-    const cmdQuery = 'SELECT syntax FROM commands WHERE command = ?';
-    const cmdUseQuery = 'SELECT timed_used FROM commands WHERE command = ?';
-    const updateQuery = 'UPDATE commands SET timed_used = ? WHERE command = ?';
-
-    connectDB.query(cmdQuery, cmd, (err, results) => {                                        // Query commands table for syntax for cmd used
-        if (err) {
-            return console.error('FUNC databaseGetCommand ERROR RESPONSE: ' + err.message);
-        } else {
-            if (results && results.length) {
-                ComfyJS.Say(`${results[0].syntax}`);
-
-                connectDB.query(cmdUseQuery, cmd, (err, result) => {                                    // If cmd executed successfully, query table for times cmd has been used
-                    if (err) {
-                        return console.error('FUNC databaseGetCommand ERROR RESPONSE: ' + err.message);
-                    } else {
-                        let newUseCount = result[0].times_used + 1;
-                        const updateData = [newUseCount, cmd];
-
-                        connectDB.query(updateQuery, updateData, (err, res) => {                            // Update times_used, increment by 1 after successful usage
-                            if (err) {
-                                return console.error('FUNC databaseGetCommand ERROR RESPONSE: ' + err.message);
-                            } else {
-                                console.log(` SQL LOG: Command '${cmd} has now been used ${res[0].times_used} times, latest user: ${user}`);
-                                return;
-                            }
-                        });
-                    }
-                });
-                return;
-            } else {
-                ComfyJS.Say(`Unrecognized command, @${user}. Try !commands or !help for assistance with what I can do! You can also add this command yourself with !addcmd`);
-                return;
-            }
-        }
-    });
-}
-
-function databaseRemoveCommand(cmd, adminLvl) {
-
-    const cmdQuery = 'DELETE FROM commands WHERE cmd = ?';
-    const adminQuery = 'SELECT modlvl FROM commands WHERE cmd = ?';
-    const cmdData = [cmd];
-    let cmdModLvl;
-
-    connectDB.query(adminQuery, cmdData, (err, results) => {                                                        // Query table for the modlvl of the command's creator
-        if (err) {
-            console.error('FUNC databaseRemoveCommand ERROR RESPONSE: ' + err.message);
-            return false;
-        } else {
-            cmdModLvl = results[0].modlvl;
-
-            if (results[0].modlvl > adminLvl) {                                                                         // Deny deletion request if cmd user's modlvl is lower than creator's
-                ComfyJS.Say(`Cannot remove command '${cmd}', @${user}. You are a lower level user compared to the command's creator. (Subscriber > VIP > Founder > Moderator > Broadcaster)`);
-                console.log(` SQL LOG: Command removal request denied due to lack of approrpiate user mod level. ${user} is ${adminLvl}, command creator is ${cmdModLvl}.`);
-                return false;
-            } else {
-                connectDB.query(cmdQuery, cmdData, (err, result) => {                                                      // Delete command from table if user's modlvl is equal to or higher than creator's
-                    if (err) {
-                        console.error('FUNC databaseRemoveCommand ERROR RESPONSE: ' + err.message);
-                        return false;
-                    } else {
-                        console.log(` SQL LOG: Command removal successful, ${user} removed command '${cmd}.`);
-                        ComfyJS.Say(`@${user}, you successfully removed the custom command '${cmd}'. May it rest in peace.`);
-                        return true;
-                    }
-                });
-            }
-        }
-    });
-}
+//
+// Basic data functions
+//
+
+
+const generateRandomAdjective = () => {
+	let adjList = [
+		'adorable',
+		'adventurous',
+		'aggressive',
+		'agreeable',
+		'alert',
+		'alive',
+		'amused',
+		'angry',
+		'annoyed',
+		'annoying',
+		'anxious',
+		'arrogant',
+		'ashamed',
+		'attractive',
+		'average',
+		'awful',
+		'bad',
+		'beautiful',
+		'better',
+		'bewildered',
+		'black',
+		'bloody',
+		'blue',
+		'blue-eyed',
+		'blushing',
+		'bored',
+		'brainy',
+		'brave',
+		'breakable',
+		'bright',
+		'busy',
+		'calm',
+		'careful',
+		'cautious',
+		'charming',
+		'cheerful',
+		'clean',
+		'clear',
+		'clever',
+		'cloudy',
+		'clumsy',
+		'colorful',
+		'combative',
+		'comfortable',
+		'concerned',
+		'condemned',
+		'confused',
+		'cooperative',
+		'courageous',
+		'crazy',
+		'creepy',
+		'crowded',
+		'cruel',
+		'curious',
+		'cute',
+		'dangerous',
+		'dark',
+		'dead',
+		'defeated',
+		'defiant',
+		'delightful',
+		'depressed',
+		'determined',
+		'different',
+		'difficult',
+		'disgusted',
+		'distinct',
+		'disturbed',
+		'dizzy',
+		'doubtful',
+		'drab',
+		'dull',
+		'eager',
+		'easy',
+		'elated',
+		'elegant',
+		'embarrassed',
+		'enchanting',
+		'encouraging',
+		'energetic',
+		'enthusiastic',
+		'envious',
+		'evil',
+		'excited',
+		'expensive',
+		'exuberant',
+		'fair',
+		'faithful',
+		'famous',
+		'fancy',
+		'fantastic',
+		'fierce',
+		'filthy',
+		'fine',
+		'foolish',
+		'fragile',
+		'frail',
+		'frantic',
+		'friendly',
+		'frightened',
+		'funny',
+		'gentle',
+		'gifted',
+		'glamorous',
+		'gleaming',
+		'glorious',
+		'good',
+		'gorgeous',
+		'graceful',
+		'grieving',
+		'grotesque',
+		'grumpy',
+		'handsome',
+		'happy',
+		'healthy',
+		'helpful',
+		'helpless',
+		'hilarious',
+		'homeless',
+		'homely',
+		'horrible',
+		'hungry',
+		'hurt',
+		'ill',
+		'important',
+		'impossible',
+		'inexpensive',
+		'innocent',
+		'inquisitive',
+		'itchy',
+		'jealous',
+		'jittery',
+		'jolly',
+		'joyous',
+		'kind',
+		'lazy',
+		'light',
+		'lively',
+		'lonely',
+		'long',
+		'lovely',
+		'lucky',
+		'magnificent',
+		'misty',
+		'modern',
+		'motionless',
+		'muddy',
+		'mushy',
+		'mysterious',
+		'nasty',
+		'naughty',
+		'nervous',
+		'nice',
+		'nutty',
+		'obedient',
+		'obnoxious',
+		'odd',
+		'old-fashioned',
+		'open',
+		'outrageous',
+		'outstanding',
+		'panicky',
+		'perfect',
+		'plain',
+		'pleasant',
+		'poised',
+		'poor',
+		'powerful',
+		'precious',
+		'prickly',
+		'proud',
+		'putrid',
+		'puzzled',
+		'quaint',
+		'real',
+		'relieved',
+		'repulsive',
+		'rich',
+		'scary',
+		'selfish',
+		'shiny',
+		'shy',
+		'silly',
+		'sleepy',
+		'smiling',
+		'smoggy',
+		'sore',
+		'sparkling',
+		'splendid',
+		'spotless',
+		'stormy',
+		'strange',
+		'stupid',
+		'successful',
+		'super',
+		'talented',
+		'tame',
+		'tasty',
+		'tender',
+		'tense',
+		'terrible',
+		'thankful',
+		'thoughtful',
+		'thoughtless',
+		'tired',
+		'tough',
+		'troubled',
+		'ugliest',
+		'ugly',
+		'uninterested',
+		'unsightly',
+		'unusual',
+		'upset',
+		'uptight',
+		'vast',
+		'victorious',
+		'vivacious',
+		'wandering',
+		'weary',
+		'wicked',
+		'wide-eyed',
+		'wild',
+		'witty',
+		'worried',
+		'worrisome',
+		'wrong',
+		'zany',
+		'zealous',
+	];
+	const listSize = adjList.length;
+	const arrayLoc = Math.floor(Math.random() * listSize);
+
+	const chosenAdj = adjList[arrayLoc];
+
+	return chosenAdj;
+};
+
+const getCurrentDate = () => {
+	const date = new Date();
+	const dd = String(date.getDate()).padStart(2, '0');
+	const mm = String(date.getMonth() + 1).padStart(2, '0');
+	const yyyy = date.getFullYear();
+
+	const today = yyyy + '-' + mm + '-' + dd;
+
+	return today;
+};
+
+//
+// Primary SQL query function
+//
+
+const execQuery = async (functionName, queryData) => {
+	const functions = {
+		getAdjective: {
+			query: 'SELECT random_adjective AS item FROM userinfo WHERE user_name = (?)',
+			response: (value) => { return value; },
+			type: 'get'
+		},
+		addUser: {
+			query: 'INSERT INTO userinfo (user_name,first_seen,last_seen,is_broadcaster,is_moderator,is_founder,is_vip,is_subscriber,random_adjective) VALUES (?,?,?,?,?,?,?,?,?)',
+			response: () => true,
+			type: 'set'
+		},
+		checkForUser: {
+			query: 'SELECT * FROM userinfo WHERE user_name = ?',
+			response: () => true,
+			type: 'get'
+		},
+		updateLastSeen: {
+			query: 'UPDATE userinfo SET last_seen = ? WHERE user_name = ?',
+			response: () => true,
+			type: 'set'
+		},
+		getLastSeen: {
+			query: 'SELECT last_seen FROM userinfo WHERE user_name = ?',
+			response: () => true,
+			type: 'get'
+		},
+		getTokens: {
+			query: 'SELECT casino_tokens FROM userinfo WHERE user_name = ?',
+			response: (value) => { return value; },
+			type: 'get'
+		},
+		updateTokens: {
+			query: 'UPDATE userinfo SET casino_tokens = ? WHERE user_name = ?',
+			response: () => true,
+			type: 'set'
+		},
+		getUserFlags: {
+			query: 'SELECT is_broadcaster,is_moderator,is_founder,is_vip,is_subscriber FROM userinfo WHERE user_name = ?',
+			response: (value) => { return value; },
+			type: 'get'
+		},
+		getMsgCount: {
+			query: 'SELECT msgs_sent FROM userinfo WHERE user_name = ?',
+			response: (value) => { return value; },
+			type: 'get'
+		},
+		updateMsgCount: {
+			query: 'UPDATE userinfo SET msgs_sent = ? WHERE user_name = ?',
+			response: () => true,
+			type: 'set'
+		},
+		addCmd: {
+			query: 'INSERT INTO commands (command,syntax,creator,create_date,modlvl) VALUES (?,?,?,?,?)',
+			response: () => true,
+			type: 'set'
+		},
+		getCmd: {
+			query: 'SELECT syntax FROM commands WHERE command = ?',
+			response: (value) => { return value; },
+			type: 'get'
+		},
+		getCmdUsage: {
+			query: 'SELECT times_used FROM commands WHERE command = ?',
+			response: (value) => { return value; },
+			type: 'get'
+		},
+		updateCmdUsage: {
+			query: 'UPDATE commands SET times_used = ? WHERE command = ?',
+			response: () => true,
+			type: 'set'
+		},
+		removeCmd: {
+			query: 'DELETE FROM commands WHERE cmd = ?',
+			response: () => true,
+			type: 'set'
+		},
+		getCmdModLvl: {
+			query: 'SELECT modlvl FROM commands WHERE cmd = ?',
+			response: (value) => { return value; },
+			type: 'get'
+		},
+		getStreamCount: {
+			query: 'SELECT streams_attended FROM userinfo WHERE user_name = ?',
+			response: (value) => { return value; },
+			type: 'get'
+		},
+		updateStreamCount: {
+			query: 'UPDATE userinfo SET streams_attended = ? WHERE user_name = ?',
+			response: () => true,
+			type: 'set'
+		},
+	};
+	
+	const querySQL = functions?.[functionName]?.query;
+
+	try {
+		
+
+		const result = await execDB.query(querySQL, queryData);
+
+		if (functions?.[functionName]?.type == 'get') {
+			
+			const resObj = result[0];
+			const key = Object.keys(resObj)[0];
+			const value = resObj[key];
+			
+			if (!result || !result.length) {
+				console.log(` SQL LOG: execQuery returned FALSE for ${querySQL}`);
+				return false;
+			}
+
+			return functions?.[functionName]?.response(value);
+
+		} else if (functions?.[functionName]?.type == 'set') {
+			if (result.affectedRows > 0) {
+				return functions?.[functionName]?.response;
+			}
+			else {
+				console.log(` SQL LOG: Result Header Info: ${result.info}`);
+				return false;
+			}
+		} else {
+			console.error(` SQL LOG: Returned unknown functionName type property error`);
+			return false;
+		}
+	} catch (e) {
+		console.error(` SQL LOG: Error catch for query '${querySQL}' - Error: ${e.message}`);
+		return false;
+	}
+};
+
+
+//
+// SQL database logic functions
+//
+
+const dbCheckForUser = async (username) => {
+	
+	const queryResponse = await execQuery('checkForUser', [username]);
+
+	if (!queryResponse) {
+		console.log(` SQL LOG: Query 'checkForUser' returned FALSE for data payload '${username}'.`);
+		return false;
+	} else if (queryResponse) {
+		console.log(` SQL LOG: Query 'checkForUser' returned TRUE for data payload '${username}'.`);
+		return true;
+	}
+};
+
+const dbAddUser = async (userDataObj) => {
+	
+	const todaysDate = getCurrentDate();
+	const randomAdjective = generateRandomAdjective();
+	const insertData = [
+		userDataObj.username,
+		//userDataObj.twitchID,
+		todaysDate,
+		todaysDate,
+		userDataObj.broadcaster,
+		userDataObj.moderator,
+		userDataObj.founder,
+		userDataObj.vip,
+		userDataObj.subscriber,
+		randomAdjective,
+	];
+
+	const existsResponse = await execQuery('checkForUser', [userDataObj.username]);
+	
+	if (!existsResponse) {
+		
+		const queryResponse = await execQuery('addUser', insertData);
+		
+		if (!queryResponse) {
+		  console.log(` SQL LOG: Query 'addUser' returned FALSE for data payload '${insertData[0]}'.`);
+		  return false;
+	  } else if (queryResponse) {
+		  console.log(` SQL LOG: Query 'addUser' returned TRUE for data payload '${insertData[0]}'.`);
+		  return true;
+	  }
+	}	
+};
+
+const dbGetAdjective = async (username) => {
+	
+	const queryResponse = await execQuery('getAdjective', [username]);
+
+	if (!queryResponse) {
+		console.log(` SQL LOG: Query 'getAdjective' returned FALSE for data payload '${username}'.`);
+		return false;
+	} else if (queryResponse) {
+		console.log(` SQL LOG: Query 'getAdjective' returned TRUE for data payload '${username}'.`);
+		return queryResponse;
+	}
+};
+
+const dbUpdateLastSeen = async (username) => {
+
+	const todaysDate = getCurrentDate();
+	const insertData = [
+		todaysDate,
+		username
+	];
+	const queryResponse = await execQuery('updateLastSeen', insertData);
+
+	if (!queryResponse) {
+		console.log(` SQL LOG: Query 'updateLastSeen' returned FALSE for data payload '${username}'.`);
+		return false;
+	} else if (queryResponse) {
+		console.log(` SQL LOG: Query 'updateLastSeen' returned TRUE for data payload '${username}'.`);
+		return true;
+	}
+};
+
+const dbGetLastSeen = async (username) => {
+
+	const queryResponse = await execQuery('getLastSeen', [username]);
+
+	if (!queryResponse) {
+		console.log(` SQL LOG: Query 'getLastSeen' returned FALSE for data payload '${username}'.`);
+		return false;
+	} else if (queryResponse) {
+		console.log(` SQL LOG: Query 'getLastSeen' returned TRUE for data payload '${username}'.`);
+		return queryResponse;
+	}
+};
+
+const dbGetTokens = async (username) => {
+
+	const queryResponse = await execQuery('getTokens', [username]);
+
+	if (!queryResponse) {
+		console.log(` SQL LOG: Query 'getTokens' returned FALSE for data payload '${username}'.`);
+		return false;
+	} else if (queryResponse) {
+		console.log(` SQL LOG: Query 'getTokens' returned TRUE for data payload '${username}'.`);
+		return queryResponse;
+	}
+};
+
+const dbUpdateTokens = async (username, betResult) => {
+
+	const queryResponse = await execQuery('getTokens', [username]);
+
+	if (!queryResponse) {
+		return false;
+	} else if (queryResponse) {
+
+		const newAmt = queryResponse + betResult;
+		const insertData = [
+			newAmt,
+			username
+		];
+
+		const updateResponse = await execQuery('updateTokens', insertData);
+		if (!updateResponse) {
+			console.log(` SQL LOG: Query 'updateTokens' returned FALSE for data payload '${insertData[1]}'.`);
+			return false;
+		} else if (updateResponse) {
+			console.log(` SQL LOG: Query 'updateTokens' returned TRUE for data payload '${insertData[1]}'.`);
+			return updateResponse;
+		}
+	}
+};
+
+const dbGetUserFlags = async (username) => {
+
+	const queryResponse = await execQuery('getUserFlags', [username]);
+
+	if (!queryResponse) {
+		console.log(` SQL LOG: Query 'getUserFlags' returned FALSE for data payload '${username}'.`);
+		return false;
+	} else if (queryResponse) {
+		console.log(` SQL LOG: Query 'getUserFlags' returned TRUE for data payload '${username}'.`);
+		return true;
+	}
+};
+
+const dbGetMsgCount = async (username) => {
+	
+	const queryResponse = await execQuery('getMsgCount', [username]);
+
+	if (!queryResponse) {
+		console.log(` SQL LOG: Query 'getMsgCount' returned FALSE for data payload '${username}'.`);
+		return false;
+	} else if (queryResponse) {
+		console.log(` SQL LOG: Query 'getMsgCount' returned TRUE for data payload '${username}'.`);
+		return queryResponse;
+	}
+};
+
+const dbUpdateMsgCount = async (username) => {
+
+	let oldMsgCount = await dbGetMsgCount(username);
+	const newCount = oldMsgCount + 1;
+	const insertData = [
+		newCount,
+		username
+	];
+	
+	const queryResponse = await execQuery('updateMsgCount', insertData);
+
+	if (!queryResponse) {
+		console.log(` SQL LOG: Query 'updateMsgCount' returned FALSE for data payload '${username}'.`);
+		return false;
+	} else if (queryResponse) {
+		console.log(` SQL LOG: Query 'updateMsgCount' returned TRUE for data payload '${username}'.`);
+		return queryResponse;
+	}
+};
+
+const dbAddCmd = async (cmdDataObj) => {
+
+	const todaysDate = getCurrentDate();
+	const insertData = [
+		cmdDataObj.command,
+		cmdDataObj.syntax,
+		cmdDataObj.creator,
+		todaysDate,
+		cmdDataObj.modLvl
+	]
+
+	const queryResponse = await execQuery('addCmd', insertData);
+
+	if (!queryResponse) {
+		console.log(` SQL LOG: Query 'addCmd' returned FALSE for data payload '${insertData[0]}'.`);
+		return false;
+	} else if (queryResponse) {
+		console.log(` SQL LOG: Query 'addCmd' returned TRUE for data payload '${insertData[0]}'.`);
+		return true;
+	}
+};
+
+const dbGetCmd = async (cmd) => {
+
+	const queryResponse = await execQuery('getCmd', [cmd]);
+
+	if (!queryResponse) {
+		console.log(` SQL LOG: Query 'getCmd' returned FALSE for data payload '${cmd}'.`);
+		return false;
+	} else if (queryResponse) {
+
+		ComfyJS.Say(`${queryResponse}`);
+		console.log(` SQL LOG: Query 'getCmd' returned TRUE for data payload '${cmd}'.`);
+
+		const cmdUseCount = await execQuery('getCmdUsage', [cmd]);
+		const newUsage = cmdUseCount + 1;
+		const insertData = [
+			newUsage,
+			cmd
+		];
+
+		const updateResponse = await execQuery('updateCmdUsage', insertData);
+
+			if (!updateResponse) {
+				console.log(` SQL LOG: Query 'updateCmdUsage' returned FALSE for data payload '${insertData[1]}'.`);
+				return false;
+			} else if (updateResponse) {
+				console.log(` SQL LOG: Query 'updateCmdUsage' returned TRUE for data payload '${insertData[1]}'.`);
+				return true;
+			}
+	}
+};
+
+const dbRemoveCmd = async (cmd, username, userModLvl) => {
+
+	const modLvlResponse = await execQuery('getCmdModLvl', [cmd]);
+	if (!modLvlResponse) {
+		console.log(` SQL LOG: Query 'getCmdModLvl' returned FALSE for data payload '${cmd}'.`);
+		return false;
+	} else if (modLvlResponse) {
+		console.log(` SQL LOG: Query 'getCmdModLvl' returned TRUE for data payload '${cmd}'.`);
+		
+		if (modLvlResponse > userModLvl) {
+			ComfyJS.Say(`Sorry, @${username}, but you are not allowed to delete this command due to having a lower user privilege level than its creator (${userModLvl} versus ${modLvlResponse}).`);
+			console.log(` SQL LOG: User '${username} attempted to remove custom command '${cmd}' but failed due to a lower privilege level (${userModLvl} versus ${modLvlResponse}).`);
+			return false;
+		} else {
+
+			const queryResponse = await execQuery('removeCmd', [cmd]);
+
+			if (!queryResponse) {
+				ComfyJS.Say(`Sorry, @${username}, but I encountered an unknown error while removing the command. Feel free to try again.`);
+				console.log(` SQL LOG: Query 'removeCmd' returned FALSE for data payload '${cmd}'.`);
+				return false;
+			} else if (queryResponse) {
+				ComfyJS.Say(`Custom command '${cmd}' successfully deleted, @${username}. Honor its memory.`);
+				console.log(` SQL LOG: Query 'removeCmd' returned TRUE for data payload '${cmd}'.`);
+				return true;
+			}
+		}
+	}
+};
+
+
+//
+// Module exports
+//
+
+module.exports.checkForUser = dbCheckForUser;
+module.exports.addUser = dbAddUser;
+module.exports.getAdjective = dbGetAdjective;
+module.exports.updateLastSeen = dbUpdateLastSeen;
+module.exports.getLastSeen = dbGetLastSeen;
+module.exports.getTokens = dbGetTokens;
+module.exports.updateTokens = dbUpdateTokens;
+module.exports.getUserFlags = dbGetUserFlags;
+module.exports.getMsgCount = dbGetMsgCount;
+module.exports.updateMsgCount = dbUpdateMsgCount;
+module.exports.addCmd = dbAddCmd;
+module.exports.getCmd = dbGetCmd;
+module.exports.removeCmd = dbRemoveCmd;
