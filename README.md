@@ -11,7 +11,7 @@
 A simple chat bot for Twitch, written for live DJing music channels, by the_random_encounter
 Currently hardcoded for functionality in the_random_encounter's channel only
 
-Uses node.js & mySQL for backend functionality, with HTML, CSS, JS, & JQuery for front-end logging functionality, intended to be embedded within OBS Studio
+Uses node.js & mySQL for backend functionality, with HTML, CSS, JS, & JQuery for front-end logging features, intended to be embedded within OBS Studio
 
 ### Current Features: ###
 
