@@ -1,0 +1,48 @@
+{
+	"users": {
+ 		"the_random_encounter": {
+      "createdOn": "2021-04-30T00:00:00.001Z",
+	  	"lastSeenOn": "2022-05-05T02:03:00.001Z",
+  		"userLvl": 1,
+      "userExp": 0,
+	  	"broadcaster": true,
+  		"moderator": true,
+		  "vip": false,
+	  	"founder": false,
+  		"subscriber": false,
+      "monthsSubbed": 0,
+	  	"bitsCheered": 0,
+  		"casinoTokens": 1000,
+		  "randomAdjective": "random",
+	  	"streamsAttended": 0,
+  		"msgsSent": 0,
+		  "msgsDeleted": 0,
+	  	"timesBanned": 0,
+  		"activeBan": false,
+		  "lastBanDate": null,
+		  "banLength": null
+		},
+		"randomencounterbot": {
+			"createdOn": "2022-05-05T02:03:00.001Z",
+	  	"lastSeenOn": "2022-05-05T02:03:00.001Z",
+  		"userLvl": 1,
+      "userExp": 0,
+	  	"broadcaster": false,
+  		"moderator": true,
+		  "vip": false,
+	  	"founder": false,
+  		"subscriber": false,
+      "monthsSubbed": 0,
+	  	"bitsCheered": 0,
+  		"casinoTokens": 1000,
+		  "randomAdjective": "robotic",
+	  	"streamsAttended": 0,
+  		"msgsSent": 0,
+		  "msgsDeleted": 0,
+	  	"timesBanned": 0,
+  		"activeBan": false,
+		  "lastBanDate": null,
+		  "banLength": null
+		}
+	}
+}
