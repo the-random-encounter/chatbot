@@ -10,100 +10,100 @@
 
 ## COMMAND LIST
 
-##### !hello 
+### !hello 
 
-###### Args:
+#### Args:
 None
 
-###### Example Usage:
+#### Example Usage:
 !hello
 
-###### Output:
+#### Output:
 @user, it is good to see you! Hello!
 
 
-##### !cheers / !toast
+### !cheers / !toast
 
-###### Args:
+#### Args:
 @target (optional)
 
-###### Example Usage:
+#### Example Usage:
 !toast / !cheers @target
 
-###### Output:
+#### Output:
 @user wants to celebrate the good times with a toast! Cheers, user
 @user wants to celebrate the good times with you, @target! Cheers!
 
 
-##### !shoutout / !so
+### !shoutout / !so
 ###### Requires Broadcaster, Moderator, VIP, or Founder status
 
-###### Args:
+#### Args:
 @target
 
-###### Example Usage:
+#### Example Usage:
 !so @target
 
 
-###### Output:
+#### Output:
 @user wants to give a mad shoutout to the amazing @target! It takes less than ten seconds to click the link and follow their profile, and they deserve the recognition! https://www.twitch.tv/target/
 
 
-##### !lurk
+### !lurk
 
-###### Args:
+#### Args:
 None
 
-###### Example Usage:
+#### Example Usage:
 !lurk
 
-###### Output:
+#### Output:
 @user has decided they have something better to do, receding into the shadows. Catch you later, wallflower!
 
 
-##### !kr / !knightsradiant / !stormlight
+### !kr / !knightsradiant / !stormlight
 
-###### Args:
+#### Args:
 None
 
-###### Example Usage:
+#### Example Usage:
 !kr / !knightsradiant / !stormlight
 
-###### Output:
+#### Output:
 The hallowed oaths must again be spoken. Life before death. Strength before weakness. Journey before destination. The Knights Radiant must stand again! @user must be a huge Cosmere nerd!
 
 
-##### !botiq
+### !botiq
 
-###### Args:
+#### Args:
 None
 
-###### Example Usage:
+#### Example Usage:
 !botiq
 
-###### Output:
+#### Output:
 I know you don't think I'm very smart, @${user}. It's okay, I know I ride the short bus everyday. I've come to terms with it.
 
 
-##### !discord
+### !discord
 
-###### Args:
+#### Args:
 None
 
-###### Example Usage:
+#### Example Usage:
 !discord
 
-###### Output:
+#### Output:
 Join the Random discord and be a part of our growing community! https://discord.gg/2HyaWdpGGT
 
 
-##### 
+### 
 
-###### Args:
-
-
-###### Example Usage:
+#### Args:
 
 
-###### Output:
+#### Example Usage:
+
+
+#### Output:
 
