@@ -1,6 +1,6 @@
 // RANDOM ENCOUNTER TWITCH CHAT BOT
 // MAIN FUNCTIONS FILE
-// v0.3.3 - 09/13/2022
+// v0.3.5 - 10/27/2022
 // by The Random Encounter
 // https://github.com/the-random-encounter/randomencounterbot.git
 // https://www.twitch.tv/the_random_encounter
@@ -568,25 +568,43 @@ ComfyJS.onCheer = async (user, message, bits, flags, extra) => {
 
 ComfyJS.onSub = async (user, message, subTierInfo, extra) => {
 
-	console.log(` SUB LOG (${time()}): ${user} subbed at tier ${subTierInfo}.`);
-	
+	const userSubInfo = await userDB.getSubInfo(user);
+	let subTier;
+	let subStreak;
+
+	console.log(` SUB LOG (${time()}): ${user} subbed at tier ${subTierInfo.plan}.`);
+		if (subTierInfo.plan === 'Prime') {
+		subTier = "Prime";
+	} else {
+		subTier = (parseInt(subTierInfo.plan) / 1000).toString();
+	}
+
 	ComfyJS.Say(`Wow! Thank you so much for ${(subTierInfo.plan === 'Prime') ? `using your Prime sub here` : `subscribing at tier ${subTier}`}, @${user}! Much appreciated, and much love!`);
 
+
+
+
+
+	if (isStreak(userSubInfo.lastMonthSubbed)) {
+		subStreak = userSubInfo.subStreak + 1;
+	}
+
 	const subInfo = {
-		"isSub": 1 || false,
-		"monthsSubbed": 1 || false,
-		"subTier": subTierInfo || false,
-		"subStreak": false
+		"isSub": true,
+		"monthsSubbed": (userSubInfo.monthsSubbed + 1) ?? 1,
+		"lastMonthSubbed": (getNumMonth()) ?? false,
+		"subStreak": subStreak ?? false,
+		"subTier": subTier ?? false
 	};
 
-	await userDB.updateSub(username, subInfo);
+	await userDB.updateSub(user, subInfo);
 }
 
 ComfyJS.onResub = async (user, message, streakMonths, cumulativeMonths, subTierInfo, extra) => {
 
 	
 
-	console.log(` SUB LOG (${time()}): ${user} resubbed at tier ${subTierInfo}. Streak: ${streakMonths}, Cumulative: ${cumulativeMonths}`);
+	console.log(` SUB LOG (${time()}): ${user} resubbed at tier ${subTierInfo.plan}. Streak: ${streakMonths}, Cumulative: ${cumulativeMonths}`);
 	 ComfyJS.Say(`Thank you for resubbing at tier ${subTierInfo}, @${user}! They now have a sub streak of ${streakMonths}, with ${cumulativeMonths} months total! Much appreciated, much love!`);
 		const subInfo = {
 		"isSub": true,
@@ -2063,20 +2081,18 @@ function generateTip() {
 		`Did you know that the_random_encounter is adding new features to me rather frequently? Gambling games coming soon! If you have any ideas for commands or features, whisper them to me and I will pass them on.`,
 		`Did you know that the_kandi_kid_assassin is one of the_random_encounter's best friends, and a glorious DJ as well? If you aren't following him, you should! https://www.twitch.tv/the_kandi_kid_assassin`,	
 		`Did you know you can create your own commands now? Try it out with the !addcmd command today, and make your mark on the channel forever!`,
-		`Weekly streams, Tuesdays and Wednesdays! Catch Random Encounter closing out Thrust Tuesdays at 1am CST/6am GMT (yes, it's technically a Wednesday), and again Wednesday evening for The Throwdown at 9pm CST/2am GMT! We'd love to see ya there!`,
+		`Weekly streams, Tuesdays and Wednesdays! Catch Random Encounter closing out Thrust Tuesdays at 12am CST/6am GMT (yes, it's technically a Wednesday), and again Wednesday evening for The Throwdown at 9pm CST/2am GMT! We'd love to see ya there!`,
 		`the_random_encounter is a resident DJ with spinspinsuper! You can catch him doing sets over at his channel from time to time, and if you haven't followed spinspinsuper already, you are not up with the current meta at all! https://www.twitch.tv/spinspinsuper/`,
 		`Everyone gets their own adjective assigned to them when they first join the channel, did you know? It's random, of course, but some say that the adjective you get is chosen by the stars... Learn yours with the !adjective command today!`,
-		`Did you know that you can control the_random_encounter's LED lighting with basic color commands? Use !lights to see the full pattern set, but basic colors usually work fine!`,
+		//`Did you know that you can control the_random_encounter's LED lighting with basic color commands? Use !lights to see the full pattern set, but basic colors usually work fine!`,
 		`Hearing jokes can be done with !joke, !dadjoke, !riddle, or !basicjoke - Adding your own jokes works with '!addjoke <JokeName> <JokeType> <Joke Wording>' - don't include the brackets. Currently acceptable joke types are 'generic', 'dad', or 'riddle'.`,
 	]
 	
 	const vipTipList = [
-		`It's Subtember, and Twitch is giving 20% off for 1-month subscriptions, 25% & 30% for 3 & 6 month subs! I won't be outdone by Twitch, so 3 or 6 mo. sub will earn you that number of raffle tickets for the next gift card drawing! Your support is greatly appreciated!`,
 		`Have you joined the Discord server yet? Its a great place to keep track of announcements, giveaways, promote yourself, get DJing/production help, and otherwise be a part of our growing circle. Check it out! https://discord.gg/2tmbtukkEF`,
 		`We have started a charity to support The Trevor Project! If you can spare a dollar, please help us donate to this incredible group, doing unspeakably important work for people who need it the most. Check out the charity donation panel right above the chat pane!`,
 		`Did you know that subscribers are automatically entered into a monthly raffle to win a $25 Twitch eGift Card on the 1st of every month? Join our Discord to learn more! https://discord.gg/2tmbtukkEF`,
-		`It's Subtember, and Twitch is giving 20% off for 1-month subscriptions, 25% & 30% for 3 & 6 month subs! I won't be outdone by Twitch, so 3 or 6 mo. sub will earn you that number of raffle tickets for the next gift card drawing! Your support is greatly appreciated!`,
-		`Interested in supporting the stream directly? Tips are greatly appreciated, and go 100% towards new tracks, new gear, and otherwise improving your streaming experience! https://streamelements.com/the_random_encounter/tip, or use his CashApp tag, $therandomencounter`,
+		`Interested in supporting the stream directly? Tips are greatly appreciated, and go 100% towards new tracks, new gear, and otherwise improving your streaming experience! https://streamelements.com/the_random_encounter/tip, CashApp tag $therandomencounter, Venmo @GromAnom, or PayPal https://paypal.me/therandomencounter`,
 		`Another way you can support the stream directly is by taking a look at the_random_encounter's Amazon wish list! All items are for streaming or studio work! https://www.amazon.com/hz/wishlist/ls/2QA8UOEUQVI00?ref_=wl_share`,
 		`Check out the merch shack! Subscribers get automatic discounts (tier 1: 10%, tier 2: 15%, tier 3: 30%)! https://store.streamelements.com/the_random_encounter - Proceeds go towards supporting and improving the channel!`,
 	]
@@ -2555,6 +2571,59 @@ function rouletteEvent(betArray) {
 
 }
 
+function getNumMonth() {
+	return new Date.getMonth() + 1;
+}
+
+function monthNumToName(monthNum) {
+	switch (monthNum) {
+		case 0:
+			return false;
+		case 1:
+			return "January";
+		case 2:
+			return "February";
+		case 3:
+			return "March";
+		case 4:
+			return "April";
+		case 5:
+			return "May";
+		case 6:
+			return "June";
+		case 7:
+			return "July";
+		case 8:
+			return "August";
+		case 9:
+			return "September";
+		case 10:
+			return "October";
+		case 11:
+			return "November";
+		case 12:
+			return "December";
+		default:
+			return false;
+	}
+}
+function isStreak(lastMonthSubbed) {
+	if (typeof lastMonthSubbed != "number") {
+		return NaN;
+	} else if (lastMonthSubbed == 0) {
+		return false;
+	}
+
+	const curMonth = new Date.getMonth() + 1;
+
+	if (lastMonthSubbed + 1 == curMonth) {
+		return true;
+	} else if (lastMonthSubbed == 12 && curMonth == 1) {
+		return true;
+	} else {
+		return false;
+	}
+}
 function genUniqueNum(max, array) {
 	
 	let random = (Number(Math.floor(Math.random() * max).toFixed()));

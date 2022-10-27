@@ -2,7 +2,7 @@
 // SQL FUNCTIONS MODULE
 // Database: userinfodb
 // Tables: userinfo, commands
-// v0.3.2 - 09/13/2022
+// v0.3.5 - 10/27/2022
 // by The Random Encounter
 // Refactor by Spinboi
 // https://github.com/the-random-encounter/randomencounterbot.git
@@ -506,6 +506,16 @@ const execQuery = async (functionName, queryData) => {
 			response: () => true,
 			type: 'set'
 		},
+		setLastMonthSubbed: {
+			query: 'UPDATE userinfo SET last_month_subbed = ? WHERE user_name = ?',
+			response: () => true,
+			type: 'set'
+		},
+		setLastMonthSubbedName: {
+			query: 'UPDATE userinfo SET last_month_subbed_name = ? WHERE user_name = ?',
+			response: () => true,
+			type: 'set'
+		},
 		setTier1GiftCount: {
 			query: 'UPDATE userinfo SET tier1_subs_gifted = ? WHERE user_name = ?',
 			response: () => true,
@@ -553,6 +563,11 @@ const execQuery = async (functionName, queryData) => {
 		},
 		getSubMonths: {
 			query: 'SELECT sub_months FROM userinfo WHERE user_name = ?',
+			response: (value) => { return value; },
+			type: 'get'
+		},
+		getLastMonthSubbed: {
+			query: 'SELECT last_month_subbed FROM userinfo WHERE user_name = ?',
 			response: (value) => { return value; },
 			type: 'get'
 		},
@@ -1502,22 +1517,70 @@ const dbIsFounder = async (username) => {	return await execQuery('isFounder', [u
 const dbIsBroadcaster = async (username) => { return await execQuery('isBroadcaster', [username]) ? true : false; }
 
 const dbGetSubInfo = async (username) => {
-    const subTierInfo = {
-        isSubbed: (await execQuery('getSubbed', [username])) ?? false,
-        monthsSubbed: (await execQuery('getSubMonths', [username])) ?? false,
-        subStreak: (await execQuery('getSubStreak', [username])) ?? false,
-        subTier: (await execQuery('getSubTier', [username])) ?? false,
-    };
+    
+	const subTierInfo = {
+        "isSubbed": (await execQuery('getSubbed', [username])) ?? false,
+        "monthsSubbed": (await execQuery('getSubMonths', [username])) ?? false,
+        "subStreak": (await execQuery('getSubStreak', [username])) ?? false,
+		"subTier": (await execQuery('getSubTier', [username])) ?? false,
+		"lastMonthSubbed": (await execQuery('getLastMonthSubbed', [username])) ?? false
+	};
+	
     return !subTierInfo.find(item => item === false) ? subTierInfo : false;
 };
 
 const dbUpdateSub = async (username, subInfo) => {
 
-	if (subInfo.isSub) { const updateSub = await execQuery('updateSub', [subInfo.isSub, username]); }
+	if (subInfo.isSub) { const updateSub = await execQuery('setSub', [subInfo.isSub, username]); }
 	if (subInfo.monthsSubbed) { const monthsSubbed = await execQuery('setSubMonths', [subInfo.monthsSubbed, username]); }
+	if (subInfo.lastMonthSubbed) { const lastMonthSubbed = await execQuery('setLastMonthSubbed', [subInfo.lastMonthSubbed, username]); }
+	if (subInfo.subStreak) { const subStreak = await execQuery('setSubStreak', [subInfo.subStreak, username]); }
 	if (subInfo.subTier) { const subTier = await execQuery('setSubTier', [subInfo.subTier, username]); }
+
+	switch (subInfo.lastMonthSubbed) {
+		case 0:
+			break;
+		case 1:
+			await execQuery('setLastMonthSubbedName', ["January", username]);
+			break;
+		case 2:
+			await execQuery('setLastMonthSubbedName', ["February", username]);
+			break;
+		case 3:
+			await execQuery('setLastMonthSubbedName', ["March", username]);
+			break;
+		case 4:
+			await execQuery('setLastMonthSubbedName', ["April", username]);
+			break;
+		case 5:
+			await execQuery('setLastMonthSubbedName', ["May", username]);
+			break;
+		case 6:
+			await execQuery('setLastMonthSubbedName', ["June", username]);
+			break;
+		case 7:
+			await execQuery('setLastMonthSubbedName', ["July", username]);
+			break;
+		case 8:
+			await execQuery('setLastMonthSubbedName', ["August", username]);
+			break;
+		case 9:
+			await execQuery('setLastMonthSubbedName', ["September", username]);
+			break;
+		case 10:
+			await execQuery('setLastMonthSubbedName', ["October", username]);
+			break;
+		case 11:
+			await execQuery('setLastMonthSubbedName', ["November", username]);
+			break;
+		case 12:
+			await execQuery('setLastMonthSubbedName', ["December", username]);
+			break;
+		default:
+			break;
+	}
 	
-	console.log(`${username}'s sub info updated. isSub: ${updateSub} | monthsSubbed: ${monthsSubbed} | subTier: ${subTier}`);
+	console.log(` SQL LOG: ${username}'s sub info updated. isSub: ${updateSub} | monthsSubbed: ${monthsSubbed} | lastMonthSubbed: ${lastMonthSubbed} | subStreak: ${subStreak} | subTier: ${subTier}`);
 	
 	const queryResponse = (!updateSub || !monthsSubbed || !subTier) ? false : true;
 	return queryResponse;
@@ -2471,4 +2534,5 @@ module.exports.removeJoke = dbRemoveJoke;
 module.exports.getCmdsCreated = dbGetCmdsCreated;
 module.exports.updateCmdsCreated = dbUpdateCmdsCreated;
 module.exports.getJokesCreated = dbGetJokesCreated;
-module.exports.dbUpdateJokesCreated = dbUpdateJokesCreated;
+module.exports.UpdateJokesCreated = dbUpdateJokesCreated;
+module.exports.GetSubInfo = dbGetSubInfo;
