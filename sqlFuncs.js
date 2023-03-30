@@ -1,8 +1,8 @@
-// RANDOM ENCOUNTER TWITCH CHAT BOT
+// RANDOM ENCOUNTER GAMING TWITCH CHAT BOT
 // SQL FUNCTIONS MODULE
-// Database: userinfodb
+// Database: userinfodb-gaming
 // Tables: userinfo, commands
-// v0.3.5 - 10/27/2022
+// v0.3.6 - 03/06/2023
 // by The Random Encounter
 // Refactor by Spinboi
 // https://github.com/the-random-encounter/randomencounterbot.git
@@ -23,7 +23,7 @@ const execDB = new asyncSQL({
 	host: process.env.SQL_HOSTNAME,
 	user: process.env.SQL_USERNAME,
 	password: process.env.SQL_PASSWORD,
-	database: process.env.SQL_DATABASE,
+	database: process.env.GAMING_SQL_DB,
 	skiptzfix: true
 });
 
@@ -1331,8 +1331,7 @@ const dbAddUser = async (username) => {
 		
 		console.log(` SQL LOG (${time()}): Successfully added user ${username}!`);
 		
-		return (queryResponse) ? true : false;
-
+	return (queryResponse) ? true : false;
 };
 
 const dbUpdateUserFlags = async (userDataObj) => {
@@ -1506,15 +1505,15 @@ const dbUpdateTimesCheered = async (username) => {
 	}
 }
 
-const dbIsMod = async (username) => {	return await execQuery('isMod', [username]) ? true : false; }
+const dbIsMod = async (username) => {	return (await execQuery('isMod', [username])) ? true : false; }
 
-const dbIsSub = async (username) => {	return await execQuery('isSub', [username]) ? true : false; }
+const dbIsSub = async (username) => {	return (await execQuery('isSub', [username])) ? true : false; }
 
-const dbIsVIP = async (username) => {	return await execQuery('isVIP', [username]) ? true : false; }
+const dbIsVIP = async (username) => {	return (await execQuery('isVIP', [username])) ? true : false; }
 
-const dbIsFounder = async (username) => {	return await execQuery('isFounder', [username]) ? true : false; }
+const dbIsFounder = async (username) => {	return (await execQuery('isFounder', [username])) ? true : false; }
 
-const dbIsBroadcaster = async (username) => { return await execQuery('isBroadcaster', [username]) ? true : false; }
+const dbIsBroadcaster = async (username) => { return (await execQuery('isBroadcaster', [username])) ? true : false; }
 
 const dbGetSubInfo = async (username) => {
     
@@ -1526,7 +1525,7 @@ const dbGetSubInfo = async (username) => {
 		"lastMonthSubbed": (await execQuery('getLastMonthSubbed', [username])) ?? false
 	};
 	
-    return !subTierInfo.find(item => item === false) ? subTierInfo : false;
+    return (!subTierInfo.find(item => item === false)) ? subTierInfo : false;
 };
 
 const dbUpdateSub = async (username, subInfo) => {

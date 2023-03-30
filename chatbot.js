@@ -1,9 +1,9 @@
-// RANDOM ENCOUNTER TWITCH CHAT BOT
+// RANDOM ENCOUNTER TWITCH CHAT BOT - GAMING VARIANT
 // MAIN FUNCTIONS FILE
-// v0.3.5 - 10/27/2022
+// v0.3.6 - 03/08/2023
 // by The Random Encounter
 // https://github.com/the-random-encounter/randomencounterbot.git
-// https://www.twitch.tv/the_random_encounter
+// https://www.twitch.tv/random_encounter_gaming
 // https://www.facebook.com/random.encounter.dj
 // E-Mail: talent@random-encounter.net
 // Secondary: contact@random-encounter.net
@@ -12,6 +12,7 @@
 //
 // ---- IMPORTS & REQUIRES ----
 //
+
 
 
 // Import Environment variables & configure event emitter listeners
@@ -210,7 +211,7 @@ console.log(`BOOT LOG (${time()}): Founders List: ` + founderList);
 console.log(`BOOT LOG (${time()}): Editors List: ` + editorsList);
 
 // Init Twitch IRC Server Connection
-ComfyJS.Init(process.env.TWITCH_USERNAME, process.env.TWITCH_OAUTH, process.env.TWITCH_CHANNEL, true);
+ComfyJS.Init(process.env.GAMING_USERNAME, process.env.GAMING_OAUTH, process.env.GAMING_CHANNEL, true);
 
 // Announcement Function Declarations
 const subathonAnnounce = () => { ComfyJS.Say(`Hey ravers and lovers and good-time-facilitators! Random Encounter is running a subathon today, hoping to get some funds to replace a bunch of stolen studio equipment. MIDI controllers, speakers, and more... all gone... It'd be awesome if you can help out. We'd both appreciate your generousity greatly!`); }
@@ -219,7 +220,7 @@ const tipAnnounce = () => { ComfyJS.Say(`Consider supporting the stream! Subscri
 const marathonAnnounce = () => { ComfyJS.Say(``); }
 const payoutAnnounce = () => { ComfyJS.Say(`Hey guys, we're pushing to get 4 or 5 additional subs in the next two days in order to get a payout from Twitch this month. We are embarassed to ask, but we had to break the bank this month, and being able to get that payout would help us out immensely. Don't forget that subscribing entitles you to being entered into our monthly $25 Twitch gift card drawing, too! Thank you for your support!`); };
 
-helpTipsGlobalInit = setInterval(generateTip, 900000);
+helpTipsGlobalInit = setInterval(generateTip, 2700000);
 
 
 //
@@ -408,7 +409,7 @@ ComfyJS.onWhisper = (user, message, flags, self, extra) => {
 	let msgContent = message.substring(msgIndexer + 1);
 	
 
-	if (user.toLowerCase() != 'the_random_encounter') {
+	if (user.toLowerCase() != 'the_random_encounter' || user.toLowerCase() != 'random_encounter_gaming') {
 		const mailOptions = {
 			from: 'talent@random-encounter.net',
 			to: 'danvisibleman@gmail.com',
@@ -424,7 +425,7 @@ ComfyJS.onWhisper = (user, message, flags, self, extra) => {
 		}
 	});
 		
-	} else if (flags.broadcaster || user.toLowerCase() == "the_random_encounter") {
+	} else if (flags.broadcaster || user.toLowerCase() == "the_random_encounter" || user.toLowerCase() == 'random_encounter_gaming') {
 			
 		const cmdIndex = cmdContent.indexOf(' ');
 		const command = cmdContent.substring(0, cmdIndex);
@@ -443,7 +444,9 @@ ComfyJS.onJoin = async (user, self, extra) => {
 	//if (typeof extra.userId !== 'undefined') { console.log(extra.userId) };
 
 	
-
+	if (blUserArray.includes(user)) {
+		console.log(`JOIN LOG (${time()}): Blacklisted user '${user} has joined the channel. Cancelling tracking services for this user.`);
+	}
 	if (ignoredUsers.includes(user)) { return; }
 
 	await userDB.addUser(user);
@@ -455,16 +458,16 @@ ComfyJS.onJoin = async (user, self, extra) => {
 	let userUpdatedPOS = updatedUsersList.indexOf(user);
 	
 	if (currentUsersList.includes(user)) {
-		logMsg = `User '${user}' has joined channel, but is already on user list. ${runTime}`;
+		logMsg = `User '${user}' has joined channel, but is already on user list. `;/*${runTime}*/
 		console.log(`JOIN LOG (${time()}): ` + logMsg);
 		logXmit(logMsg, logType);
 	} else if (!currentUsersList.includes(user)) {
-		logMsg = `User '${user}' has joined channel, adding to current user list. ${runTime}`;
+		logMsg = `User '${user}' has joined channel, adding to current user list. `;/*${runTime}*/
 		console.log(`JOIN LOG (${time()}): ` + logMsg);
 		logXmit(logMsg, logType);
 		currentUsersList.push(user);
 	} else {
-		logMsg = `Unknown exception regarding user '${user}' leaving channel. UserPOS variable not -1 or above 1. Leaving alone. ${runTime}`;
+		logMsg = `Unknown exception regarding user '${user}' leaving channel. UserPOS variable not -1 or above 1. Leaving alone. `;/*${runTime}*/
 		console.log(`JOIN LOG (${time()}): ` + logMsg);
 		logXmit(logMsg, logType);
 	}
@@ -502,15 +505,15 @@ ComfyJS.onPart = async (user, self, extra) => {
 	
 	if (currentUsersList.includes(user)) {
 		currentUsersList.splice(userPOS, 1);
-		logMsg = `User '${user}' has left channel, pruned username from active users list. ${runTime}`;
+		logMsg = `User '${user}' has left channel, pruned username from active users list. `;/*${runTime}*/
 		console.log(`PART LOG (${time()}): ` + logMsg);
 		logXmit(logMsg, logType);
 	} else if (!currentUsersList.includes(user)) {
-		logMsg = `User '${user}' left channel, but was not on users list beforehand. Leaving alone. ${runTime}`;
+		logMsg = `User '${user}' left channel, but was not on users list beforehand. Leaving alone. `;/*${runTime}*/
 		console.log(`PART LOG (${time()}): ` + logMsg);
 		logXmit(logMsg, logType);
 	} else {
-		logMsg = `Unknown exception regarding user '${user}' leaving channel. UserPOS variable not -1 or above 1. Leaving alone. ${runTime}`;
+		logMsg = `Unknown exception regarding user '${user}' leaving channel. UserPOS variable not -1 or above 1. Leaving alone. `;/*${runTime}*/
 		console.log(`PART LOG (${time()}): ` + logMsg);
 		logXmit(logMsg, logType);
 	}
@@ -550,7 +553,7 @@ ComfyJS.onCheer = async (user, message, bits, flags, extra) => {
 	
 
 	console.log(` BIT LOG (${time()}): ${user} cheered a total of ${bits} bits. Message: ${message}`);
-	 ComfyJS.Say(`@${user} just blasted @the_random_encounter with ${bits} of the MOISTEST, JUICIEST BITS POSSIBLE! Holy shit! Thank you SO MUCH, @${user}. Your generosity is ***MUCH*** appreciated!!!`);
+	 ComfyJS.Say(`@${user} just blasted @random_encounter_gaming with ${bits} of the MOISTEST, JUICIEST BITS POSSIBLE! Holy shit! Thank you SO MUCH, @${user}. Your generosity is ***MUCH*** appreciated!!!`);
 	
 	await userDB.updateBits(user, bits);
 	await userDB.updateTimesCheered(user);
@@ -655,7 +658,7 @@ ComfyJS.onRaid = async (user, viewers, extra) => {
 	
 
 	console.log(`RAID LOG (${time()}): ${user} raided the channel with ${viewers} in tow.`);
-	 ComfyJS.Say(`Incoming raid from @${user} with ${viewers} viewers in tow! Welcome raiders! Please refresh your browsers once you are loaded in. Glad to have you! https://www.twitch.tv/the_random_encounter`);
+	 ComfyJS.Say(`Incoming raid from @${user} with ${viewers} viewers in tow! Welcome raiders! Please refresh your browsers once you are loaded in. Glad to have you! https://www.twitch.tv/random_encounter_gaming`);
 	raidersArray.push(user);
 
 	await userDB.incRaidCount(user);
@@ -731,7 +734,7 @@ async function cmdExec(user, command, message, flags, extra) {
       break;
 
     case 'byebyebot':
-      if (flags.broadcaster || user.toLowerCase() == "the_random_encounter") {
+      if (flags.broadcaster || user.toLowerCase() == "the_random_encounter" || user.toLowerCase() == 'random_encounter_gaming') {
          ComfyJS.Say(`Alright, I'm out! Bye Felicia!`);
       await userDB.disconnect();
         ComfyJS.Disconnect();
@@ -742,7 +745,7 @@ async function cmdExec(user, command, message, flags, extra) {
         
     case 'bss':
     case 'beginstreamsilent':
-      if (flags.broadcaster || user.toLowerCase() == "the_random_encounter") {
+      if (flags.broadcaster || user.toLowerCase() == "the_random_encounter" || user.toLowerCase() == 'random_encounter_gaming') {
 
 				clearTimeout(helpTipsGlobalInit);
         helpTipInterval = setInterval(generateTip, 300000); // Random tips every five minutes
@@ -761,7 +764,7 @@ async function cmdExec(user, command, message, flags, extra) {
 
 		case 'bs':
     case 'beginstream':
-      if (flags.broadcaster || user.toLowerCase() == "the_random_encounter") {
+      if (flags.broadcaster || user.toLowerCase() == "the_random_encounter" || user.toLowerCase() == 'random_encounter_gaming') {
 
 				clearTimeout(helpTipsGlobalInit);
         helpTipInterval = setInterval(generateTip, 300000); // Random tips every five minutes
@@ -781,7 +784,7 @@ async function cmdExec(user, command, message, flags, extra) {
 
 		case 'b2s':
     case 'begin2ndstream':
-      if (flags.broadcaster || user.toLowerCase() == "the_random_encounter") {
+      if (flags.broadcaster || user.toLowerCase() == "the_random_encounter" || user.toLowerCase() == 'random_encounter_gaming') {
 
 				clearTimeout(helpTipsGlobalInit);
         helpTipInterval = setInterval(generateTip, 300000); // Random tips every five minutes
@@ -801,7 +804,7 @@ async function cmdExec(user, command, message, flags, extra) {
 
     case 'es':
     case 'endstream':
-      if (flags.broadcaster || user.toLowerCase() == "the_random_encounter") {
+      if (flags.broadcaster || user.toLowerCase() == "the_random_encounter" || user.toLowerCase() == 'random_encounter_gaming') {
 
         clearTimeout(raidTrainInit);
         clearInterval(raidTrainInterval);
@@ -826,7 +829,7 @@ async function cmdExec(user, command, message, flags, extra) {
 
     case 'ess':
     case 'endstreamsilent':
-      if (flags.broadcaster || user.toLowerCase() == "the_random_encounter") {
+      if (flags.broadcaster || user.toLowerCase() == "the_random_encounter" || user.toLowerCase() == 'random_encounter_gaming') {
 
         clearTimeout(raidTrainInit);
  			  clearInterval(raidTrainInterval);
@@ -900,9 +903,9 @@ async function cmdExec(user, command, message, flags, extra) {
     case 'madlove':
 			 ComfyJS.Say(`AsexualPride boredrAversMadLove BisexualPride boredrAversMadLove GayPride boredrAversMadLove GenderFluidPride boredrAversMadLove IntersexPride boredrAversMadLove LesbianPride boredrAversMadLove NonbinaryPride boredrAversMadLove PansexualPride boredrAversMadLove TransgenderPride boredrAversMadLove`);
       break;
-
+ 
     case 'userdebug':
-      if (flags.broadcaster || user.toLowerCase() == "the_random_encounter") {
+      if (flags.broadcaster || user.toLowerCase() == "the_random_encounter"|| user.toLowerCase() == 'random_encounter_gaming') {
 				 ComfyJS.Say(`Performing user debug action. Check console logs for 
 				further information.`
 				);
@@ -915,7 +918,7 @@ async function cmdExec(user, command, message, flags, extra) {
 		
 		case 'usrdbg':
 		case 'usd':
-			if (flags.broadcaster || user.toLowerCase() == "the_random_encounter") {
+			if (flags.broadcaster || user.toLowerCase() == "the_random_encounter"|| user.toLowerCase() == 'random_encounter_gaming') {
 				console.log(`Current Users List (array 'currentUsersList'):`);
 				console.dir(currentUsersList);
 			} else {
@@ -925,7 +928,7 @@ async function cmdExec(user, command, message, flags, extra) {
 			break;
 		
     case 'updatelistdebug':
-      if (flags.broadcaster || user.toLowerCase() == "the_random_encounter") {
+      if (flags.broadcaster || user.toLowerCase() == "the_random_encounter"|| user.toLowerCase() == 'random_encounter_gaming') {
 				 ComfyJS.Say(`Performing updated user list debug action. Check console 
 				logs for further information.`
 				);
@@ -939,7 +942,7 @@ async function cmdExec(user, command, message, flags, extra) {
 		case 'uldbg':
 		case 'updlstdbg':
 		case 'uld':
-			if (flags.broadcaster || user.toLowerCase() == "the_random_encounter") {
+			if (flags.broadcaster || user.toLowerCase() == "the_random_encounter"|| user.toLowerCase() == 'random_encounter_gaming') {
 
         console.log(updatedUsersList);
       } else {
@@ -968,12 +971,12 @@ async function cmdExec(user, command, message, flags, extra) {
       break;
 
     case 'tuesday':
-       ComfyJS.Say(`Every Tuesday, @the_random_encounter is getting thrusty with the rest of the Thrust Tuesday crew. Catch him from 11:00PM PST/2:00AM EST/6:00AM GMT till he feels like closing it out. For the rest, check out the linktree link for all the information on line-ups and other cool stuff you could want! https://linktr.ee/ThrustTuesdays`);
+       ComfyJS.Say(`Every Tuesday, @random_encounter_gaming is getting thrusty with the rest of the Thrust Tuesday crew. Catch him from 11:00PM PST/2:00AM EST/6:00AM GMT till he feels like closing it out. For the rest, check out the linktree link for all the information on line-ups and other cool stuff you could want! https://linktr.ee/ThrustTuesdays`);
       break;
 
     case 'omfg':
     case 'wednesday':
-       ComfyJS.Say(`Every Wednesday, @the_random_encounter is waging war against hardcore! Catch him for an hour at 7:00PM-8:00PM PST/10:00PM-11:00PM EST/2:00AM-3:00AM GMT. For the rest, check out the linktree link for all the information on line-ups and other cool stuff you could want! https://linktr.ee/omfgweekly`);
+       ComfyJS.Say(`Every Wednesday, @random_encounter_gaming is waging war against hardcore! Catch him for an hour at 7:00PM-8:00PM PST/10:00PM-11:00PM EST/2:00AM-3:00AM GMT. For the rest, check out the linktree link for all the information on line-ups and other cool stuff you could want! https://linktr.ee/omfgweekly`);
       break;
 
     case 'omfglinktree':
@@ -1108,7 +1111,7 @@ async function cmdExec(user, command, message, flags, extra) {
     case 'trackname':
     case 'trackid':
     case 'tunename':
-       ComfyJS.Say(`Hey, @the_random_encounter, your biggest fan, @${user}, wants to know the name of this track. Whoever knows, help 'em out!`);
+       ComfyJS.Say(`Hey, @random_encounter_gaming, your biggest fan, @${user}, wants to know the name of this track. Whoever knows, help 'em out!`);
       break;
 
     case 'hug':
@@ -1943,6 +1946,10 @@ f
 			ComfyJS.Say(`Emote pyramid complete!`);
 			break;
 		
+	  case 'uptime':
+		  
+		  console.log(` CMD LOG: Bot Uptime: ${runTime()}`);
+		  ComfyJS.Say(`My uptime is currently ${runTime()}`)
 		default:
 
 			const validCmd = await userDB.getCmd(cmd, user);
@@ -2067,25 +2074,26 @@ function generateTip() {
   let runTime = `Script Runtime: ${upTime}`;
 	
 	const tipList = [
-		`Did you know that the_random_encounter is creating me from scratch? Now over 6,000 lines of code! Pretty impressive really, even if he does say mean things about me.`,
-		`Did you know you can send the_random_encounter an e-mail by sending me a whisper directly? I will forward anything you say to me in private to his e-mail. Nifty, huh?`,
-		`Did you know that the_random_encounter has lots of cheeky ways to spend your channel points? Make yourself known and punish his hubris today!`,
-		`Did you know that the_random_encounter is adding new features to me rather frequently? Gambling games coming soon! If you have any ideas for commands or features, whisper them to me and I will pass them on.`,
-		`Did you know that the_kandi_kid_assassin is one of the_random_encounter's best friends, and a glorious DJ as well? If you aren't following him, you should! https://www.twitch.tv/the_kandi_kid_assassin`,	
+		`Did you know that random_encounter_gaming is creating me from scratch? Now over 6,000 lines of code! Pretty impressive really, even if he does say mean things about me.`,
+		`Did you know you can send random_encounter_gaming an e-mail by sending me a whisper directly? I will forward anything you say to me in private to his e-mail. Nifty, huh?`,
+		//`Did you know that random_encounter_gaming has lots of cheeky ways to spend your channel points? Make yourself known and punish his hubris today!`,
+		//`Did you know that random_encounter_gaming is adding new features to me rather frequently? Gambling games coming soon! If you have any ideas for commands or features, whisper them to me and I will pass them on.`,
+		//`Did you know that the_kandi_kid_assassin is one of random_encounter_gaming's best friends, and a glorious DJ as well? If you aren't following him, you should! https://www.twitch.tv/the_kandi_kid_assassin`,	
 		`Did you know you can create your own commands now? Try it out with the !addcmd command today, and make your mark on the channel forever!`,
-		`Weekly streams, Tuesdays and Wednesdays! Catch Random Encounter closing out Thrust Tuesdays at 12am CST/6am GMT (yes, it's technically a Wednesday), and again Wednesday evening for The Throwdown at 9pm CST/2am GMT! We'd love to see ya there!`,
-		`the_random_encounter is a resident DJ with spinspinsuper! You can catch him doing sets over at his channel from time to time, and if you haven't followed spinspinsuper already, you are not up with the current meta at all! https://www.twitch.tv/spinspinsuper/`,
+		`Weekend Arma 3 Milsim streams, Saturday 1400 CST and Sunday 1400 CST! MSFS, Noita, and ATS streams at randomly encountered times! A persistent schedule will emerge after Affiliate is reached.`,
+		//`random_encounter_gaming is a resident DJ with spinspinsuper! You can catch him doing sets over at his channel from time to time, and if you haven't followed spinspinsuper already, you are not up with the current meta at all! https://www.twitch.tv/spinspinsuper/`,
 		`Everyone gets their own adjective assigned to them when they first join the channel, did you know? It's random, of course, but some say that the adjective you get is chosen by the stars... Learn yours with the !adjective command today!`,
-		//`Did you know that you can control the_random_encounter's LED lighting with basic color commands? Use !lights to see the full pattern set, but basic colors usually work fine!`,
-		`Hearing jokes can be done with !joke, !dadjoke, !riddle, or !basicjoke - Adding your own jokes works with '!addjoke <JokeName> <JokeType> <Joke Wording>' - don't include the brackets. Currently acceptable joke types are 'generic', 'dad', or 'riddle'.`,
+		//`Did you know that you can control random_encounter_gaming's LED lighting with basic color commands? Use !lights to see the full pattern set, but basic colors usually work fine!`,
+		//`Hearing jokes can be done with !joke, !dadjoke, !riddle, or !basicjoke - Adding your own jokes works with '!addjoke <JokeName> <JokeType> <Joke Wording>' - don't include the brackets. Currently acceptable joke types are 'generic', 'dad', or 'riddle'.`,
+		`random_encounter is also a DJ! Check out his music channel, https://www.twitch.tv/the_random_encounter/ - Currently on hiatus, but previous sets are available on YouTube - https://youtube.random-encounter.net/`
 	]
 	
 	const vipTipList = [
-		`Have you joined the Discord server yet? Its a great place to keep track of announcements, giveaways, promote yourself, get DJing/production help, and otherwise be a part of our growing circle. Check it out! https://discord.gg/2tmbtukkEF`,
-		`We have started a charity to support The Trevor Project! If you can spare a dollar, please help us donate to this incredible group, doing unspeakably important work for people who need it the most. Check out the charity donation panel right above the chat pane!`,
-		`Did you know that subscribers are automatically entered into a monthly raffle to win a $25 Twitch eGift Card on the 1st of every month? Join our Discord to learn more! https://discord.gg/2tmbtukkEF`,
+		//`Have you joined the Discord server yet? Its a great place to keep track of announcements, giveaways, promote yourself, get DJing/production help, and otherwise be a part of our growing circle. Check it out! https://discord.gg/2tmbtukkEF`,
+		//`We have started a charity to support The Trevor Project! If you can spare a dollar, please help us donate to this incredible group, doing unspeakably important work for people who need it the most. Check out the charity donation panel right above the chat pane!`,
+		//`Did you know that subscribers are automatically entered into a monthly raffle to win a $25 Twitch eGift Card on the 1st of every month? Join our Discord to learn more! https://discord.gg/2tmbtukkEF`,
 		`Interested in supporting the stream directly? Tips are greatly appreciated, and go 100% towards new tracks, new gear, and otherwise improving your streaming experience! https://streamelements.com/the_random_encounter/tip, CashApp tag $therandomencounter, Venmo @GromAnom, or PayPal https://paypal.me/therandomencounter`,
-		`Another way you can support the stream directly is by taking a look at the_random_encounter's Amazon wish list! All items are for streaming or studio work! https://www.amazon.com/hz/wishlist/ls/2QA8UOEUQVI00?ref_=wl_share`,
+		`Another way you can support the stream directly is by taking a look at Random's Amazon wish list! All items are for streaming or studio work! https://www.amazon.com/hz/wishlist/ls/2QA8UOEUQVI00?ref_=wl_share`,
 		`Check out the merch shack! Subscribers get automatic discounts (tier 1: 10%, tier 2: 15%, tier 3: 30%)! https://store.streamelements.com/the_random_encounter - Proceeds go towards supporting and improving the channel!`,
 	]
 	const listSize = tipList.length;
@@ -2105,11 +2113,11 @@ function generateTip() {
 			 ComfyJS.Say(`${chosenTip}`);
 			vipCounter += 1;
 			if ((vipCounter) == vipSize) {
-				console.log(` BOT LOG (${time()}): Displayed VIP tip #${vipCounter} of ${vipSize}. Completed all ${vipSize} VIP tips, resetting to 0... ${runTime}`);
+				console.log(` BOT LOG (${time()}): Displayed VIP tip #${vipCounter} of ${vipSize}. Completed all ${vipSize} VIP tips, resetting to 0... `);/*${runTime}*/
 				vipCounter = 0;
 				vipLaps++;
 			} else {
-					console.log(` BOT LOG (${time()}): Displayed VIP tip #${vipCounter} of ${vipSize}. ${runTime}`);
+					console.log(` BOT LOG (${time()}): Displayed VIP tip #${vipCounter} of ${vipSize}. `);/*${runTime}*/
 			}
 			vipFlag = false;			
 			break;
@@ -2126,11 +2134,11 @@ function generateTip() {
 			 ComfyJS.Say(`${chosenTip}`);
 			if (!tipsGiven.includes(arrayLoc)) { tipsGiven.push(arrayLoc); }
 			if (tipsGiven.length == tipList.length) {
-				console.log(` BOT LOG (${time()}): Displayed general tip #${arrayLoc + 1} of ${listSize}. Used all ${tipsGiven.length} tips, resetting to 0... ${runTime}`);
+				console.log(` BOT LOG (${time()}): Displayed general tip #${arrayLoc + 1} of ${listSize}. Used all ${tipsGiven.length} tips, resetting to 0...`);
 				tipsGiven = [];
 				tipLaps++;
 			} else {
-				console.log(` BOT LOG (${time()}): Displayed general tip #${arrayLoc + 1} of ${listSize}, used ${tipsGiven.length} of ${tipList.length} tips in list. ${runTime}`);
+				console.log(` BOT LOG (${time()}): Displayed general tip #${arrayLoc + 1} of ${listSize}, used ${tipsGiven.length} of ${tipList.length} tips in list.`);
 			}
 			vipFlag = true;
 			break;
@@ -2566,9 +2574,10 @@ function rouletteEvent(betArray) {
 function runTime() {
 	let timeSinceBegin = (new Date().getTime()) - scriptStart;
 	let upTime = msToTime((timeSinceBegin - scriptStart));
-	let runTime = `Script Runtime: ${upTime} (${timeSinceBegin}ms)`;
-	return runTime;
+	let runTimeMsg = `Script Runtime: ${upTime} (${timeSinceBegin}ms)`;
+	return runTimeMsg;
 }
+
 function getNumMonth() {
 	return new Date.getMonth() + 1;
 }
