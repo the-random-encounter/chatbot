@@ -62,9 +62,9 @@ overlayIO.on("connection", socket => {
 //
 
 
-// Script timing variable
-var scriptStart = new Date().getTime();
-
+// Script timing variables
+let scriptStart = new Date().getTime();
+	
 // User tracking list arrays
 let currentUsersList = [];
 let updatedUsersList = [];
@@ -447,11 +447,7 @@ ComfyJS.onJoin = async (user, self, extra) => {
 	if (ignoredUsers.includes(user)) { return; }
 
 	await userDB.addUser(user);
-	var scriptRuntime = new Date().getTime();
-	var timeSinceBegin = scriptRuntime - scriptStart;
-	let runTimeMinutes = timeSinceBegin / 60000;
-	let upTime = msToTime(timeSinceBegin);
-	let runTime = `Script Runtime: ${upTime} (${timeSinceBegin}ms)`;
+
 	const logType = 'JOIN';
 	let logMsg;
 
@@ -498,10 +494,6 @@ ComfyJS.onPart = async (user, self, extra) => {
 
 	if (ignoredUsers.includes(user)) { return; }
 
-  var scriptRuntime = new Date().getTime();
-  var timeSinceBegin = scriptRuntime - scriptStart;
-  let upTime = msToTime(timeSinceBegin);
-  let runTime = `Script Runtime: ${upTime} (${timeSinceBegin}ms)`;
   const logType = 'PART';
   let logMsg;
 
@@ -2571,6 +2563,12 @@ function rouletteEvent(betArray) {
 
 }
 
+function runTime() {
+	let timeSinceBegin = (new Date().getTime()) - scriptStart;
+	let upTime = msToTime((timeSinceBegin - scriptStart));
+	let runTime = `Script Runtime: ${upTime} (${timeSinceBegin}ms)`;
+	return runTime;
+}
 function getNumMonth() {
 	return new Date.getMonth() + 1;
 }
